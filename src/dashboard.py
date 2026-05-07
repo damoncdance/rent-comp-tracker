@@ -123,33 +123,77 @@ def _render_html(ctx: dict) -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root {{ --fg:#1a1a1a; --muted:#666; --bg:#fafafa; --card:#fff; --line:#e5e5e5; --accent:#1f4e78; }}
+  :root {{
+    --fg:#1a1a1a; --muted:#5c5c5c; --bg:#f3f4f6; --card:#fff; --line:#e5e7eb;
+    --accent:#1f4e78; --accent-soft:rgba(31,78,120,0.08); --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.06);
+  }}
   * {{ box-sizing:border-box; }}
-  body {{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--fg); margin:0; padding:24px; }}
-  header {{ max-width:1200px; margin:0 auto 24px; }}
-  h1 {{ margin:0 0 4px; font-size:28px; color:var(--accent); }}
-  .meta {{ color:var(--muted); font-size:14px; }}
-  .meta a {{ color:var(--muted); }}
-  .grid {{ max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }}
-  .card {{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px; }}
+  body {{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--fg); margin:0;
+    padding:clamp(16px,4vw,32px) clamp(16px,3vw,28px) 48px;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }}
+  header {{
+    max-width:1120px; margin:0 auto 28px;
+    padding-bottom:20px; border-bottom:1px solid var(--line);
+  }}
+  h1 {{
+    margin:0 0 10px; font-size:clamp(1.25rem,2.5vw,1.75rem); font-weight:700;
+    color:var(--accent); line-height:1.25; letter-spacing:-0.02em;
+  }}
+  .meta {{ color:var(--muted); font-size:14px; line-height:1.55; max-width:62ch; }}
+  .meta a {{ color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; }}
+  .meta a:hover {{ border-bottom-color:var(--accent); }}
+  .grid {{
+    max-width:1120px; margin:0 auto; display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr)); gap:clamp(12px,2vw,20px);
+  }}
+  .card {{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:clamp(16px,2.5vw,22px); box-shadow:var(--shadow);
+  }}
   .span-3 {{ grid-column:span 3; }} .span-4 {{ grid-column:span 4; }}
-  .span-6 {{ grid-column:span 6; }} .span-12 {{ grid-column:span 12; }}
-  @media (max-width:900px) {{ .span-3,.span-4,.span-6 {{ grid-column:span 12; }} }}
-  .stat {{ font-size:32px; font-weight:600; color:var(--accent); }}
-  .label {{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }}
-  .small {{ font-size:13px; color:var(--muted); margin-top:6px; }}
+  .span-5 {{ grid-column:span 5; }} .span-6 {{ grid-column:span 6; }}
+  .span-7 {{ grid-column:span 7; }} .span-8 {{ grid-column:span 8; }}
+  .span-12 {{ grid-column:span 12; }}
+  @media (max-width:960px) {{
+    .span-3,.span-4,.span-6,.span-8 {{ grid-column:span 12; }}
+    .span-5,.span-7 {{ grid-column:span 12; }}
+  }}
+  .stat-card {{ display:flex; flex-direction:column; justify-content:flex-end; min-height:92px; }}
+  .stat {{ font-size:clamp(1.5rem,4vw,2rem); font-weight:700; color:var(--accent); line-height:1.1; margin-top:6px; }}
+  .label {{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }}
+  .small {{ font-size:13px; color:var(--muted); margin-top:12px; line-height:1.45; }}
+  h2 {{
+    margin:0 0 4px; font-size:15px; font-weight:600; color:var(--fg);
+    letter-spacing:-0.01em;
+  }}
+  .card > h2 + .chart-wrap {{ margin-top:12px; }}
+  .chart-wrap {{ position:relative; height:min(260px,42vw); width:100%; min-height:200px; }}
+  .chart-wrap--tall {{ height:min(280px,48vw); min-height:220px; }}
   table {{ width:100%; border-collapse:collapse; font-size:13px; }}
-  th,td {{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }}
-  th {{ background:#f5f5f5; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); position:sticky; top:0; }}
+  th,td {{ text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }}
+  tbody tr:nth-child(even) td {{ background:var(--accent-soft); }}
+  th {{
+    background:#f9fafb; font-weight:600; font-size:11px;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--line);
+  }}
+  th.num {{ text-align:right; }}
   td.num {{ text-align:right; font-variant-numeric:tabular-nums; }}
-  td.mono {{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }}
-  .muted {{ color:var(--muted); text-align:center; padding:24px !important; }}
-  .scroll {{ max-height:520px; overflow:auto; }}
-  .badge {{ display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }}
-  .badge-add {{ background:#d4edda; color:#155724; }}
-  .badge-remove {{ background:#f8d7da; color:#721c24; }}
-  .badge-change {{ background:#fff3cd; color:#856404; }}
-  h2 {{ margin:0 0 12px; font-size:16px; }}
+  td.mono {{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }}
+  .muted {{ color:var(--muted); text-align:center; padding:28px !important; font-size:14px; }}
+  .scroll {{
+    max-height:min(520px,55vh); overflow:auto; margin:0 -4px;
+    padding:0 4px; border-radius:8px; border:1px solid var(--line);
+    background:var(--card);
+  }}
+  .scroll table {{ margin:0; }}
+  .badge {{ display:inline-block; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; }}
+  .badge-add {{ background:#d1fae5; color:#065f46; }}
+  .badge-remove {{ background:#fee2e2; color:#991b1b; }}
+  .badge-change {{ background:#fef3c7; color:#92400e; }}
 </style>
 </head>
 <body>
@@ -163,24 +207,24 @@ def _render_html(ctx: dict) -> str:
 </header>
 
 <div class="grid">
-  <div class="card span-3"><div class="label">Available units</div><div class="stat">{snap['unit_count']}</div></div>
-  <div class="card span-3"><div class="label">Avg rent</div><div class="stat">${avg_rent:,.0f}</div></div>
-  <div class="card span-3"><div class="label">Min rent</div><div class="stat">${min_rent:,.0f}</div></div>
-  <div class="card span-3"><div class="label">Max rent</div><div class="stat">${max_rent:,.0f}</div></div>
+  <div class="card span-3 stat-card"><div class="label">Available units</div><div class="stat">{snap['unit_count']}</div></div>
+  <div class="card span-3 stat-card"><div class="label">Avg rent</div><div class="stat">${avg_rent:,.0f}</div></div>
+  <div class="card span-3 stat-card"><div class="label">Min rent</div><div class="stat">${min_rent:,.0f}</div></div>
+  <div class="card span-3 stat-card"><div class="label">Max rent</div><div class="stat">${max_rent:,.0f}</div></div>
 
   <div class="card span-4">
     <h2>Mix by unit type</h2>
-    <canvas id="mixChart" height="220"></canvas>
+    <div class="chart-wrap"><canvas id="mixChart" aria-label="Unit mix chart"></canvas></div>
   </div>
   <div class="card span-8">
     <h2>Available units over time</h2>
-    <canvas id="totalChart" height="220"></canvas>
+    <div class="chart-wrap"><canvas id="totalChart" aria-label="Units over time chart"></canvas></div>
     <div class="small">One point per snapshot. Build up history by letting the daily run go for a few days.</div>
   </div>
 
   <div class="card span-12">
     <h2>Average rent over time, by unit type</h2>
-    <canvas id="rentChart" height="180"></canvas>
+    <div class="chart-wrap chart-wrap--tall"><canvas id="rentChart" aria-label="Average rent by type chart"></canvas></div>
   </div>
 
   <div class="card span-7">
@@ -210,9 +254,16 @@ new Chart(document.getElementById('mixChart'), {{
   type: 'doughnut',
   data: {{
     labels: Object.keys(counts),
-    datasets: [{{ data: Object.values(counts), backgroundColor: ['#1f4e78','#2e75b6','#5b9bd5','#9dc3e6'] }}]
+    datasets: [{{ data: Object.values(counts), backgroundColor: ['#1f4e78','#2e75b6','#5b9bd5','#9dc3e6'], borderWidth: 0 }}]
   }},
-  options: {{ plugins: {{ legend: {{ position: 'bottom' }} }} }}
+  options: {{
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '52%',
+    plugins: {{
+      legend: {{ position: 'bottom', labels: {{ boxWidth: 12, padding: 14, font: {{ size: 12 }} }} }}
+    }}
+  }}
 }});
 
 const timeline = {timeline_json};
@@ -221,9 +272,19 @@ new Chart(document.getElementById('totalChart'), {{
   data: {{
     labels: timeline.map(p => p.t.slice(0,10)),
     datasets: [{{ label: 'Available units', data: timeline.map(p => p.count),
-                  borderColor: '#1f4e78', backgroundColor: 'rgba(31,78,120,0.1)', tension: 0.2, fill: true }}]
+                  borderColor: '#1f4e78', backgroundColor: 'rgba(31,78,120,0.1)', tension: 0.2, fill: true,
+                  borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 }}]
   }},
-  options: {{ scales: {{ y: {{ beginAtZero: true }} }}, plugins: {{ legend: {{ display: false }} }} }}
+  options: {{
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {{ intersect: false, mode: 'index' }},
+    scales: {{
+      x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 11 }} }} }},
+      y: {{ beginAtZero: true, ticks: {{ font: {{ size: 11 }} }} }}
+    }},
+    plugins: {{ legend: {{ display: false }} }}
+  }}
 }});
 
 const rentSeries = {avg_rent_series_json};
@@ -232,13 +293,29 @@ new Chart(document.getElementById('rentChart'), {{
   data: {{
     labels: rentSeries.map(p => p.t.slice(0,10)),
     datasets: [
-      {{ label: 'Studio',  data: rentSeries.map(p => p.studio),   borderColor: '#1f4e78', tension: 0.2 }},
-      {{ label: '1 BR',    data: rentSeries.map(p => p.one_br),   borderColor: '#2e75b6', tension: 0.2 }},
-      {{ label: '2 BR',    data: rentSeries.map(p => p.two_br),   borderColor: '#5b9bd5', tension: 0.2 }},
-      {{ label: '3 BR',    data: rentSeries.map(p => p.three_br), borderColor: '#9dc3e6', tension: 0.2 }},
+      {{ label: 'Studio',  data: rentSeries.map(p => p.studio),   borderColor: '#1f4e78', tension: 0.2, borderWidth: 2, pointRadius: 2 }},
+      {{ label: '1 BR',    data: rentSeries.map(p => p.one_br),   borderColor: '#2e75b6', tension: 0.2, borderWidth: 2, pointRadius: 2 }},
+      {{ label: '2 BR',    data: rentSeries.map(p => p.two_br),   borderColor: '#5b9bd5', tension: 0.2, borderWidth: 2, pointRadius: 2 }},
+      {{ label: '3 BR',    data: rentSeries.map(p => p.three_br), borderColor: '#9dc3e6', tension: 0.2, borderWidth: 2, pointRadius: 2 }},
     ]
   }},
-  options: {{ scales: {{ y: {{ ticks: {{ callback: v => '$' + v.toLocaleString() }} }} }} }}
+  options: {{
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {{ intersect: false, mode: 'index' }},
+    scales: {{
+      x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 11 }} }} }},
+      y: {{
+        ticks: {{
+          callback: v => (v == null || v === '' ? '' : '$' + Number(v).toLocaleString()),
+          font: {{ size: 11 }}
+        }}
+      }}
+    }},
+    plugins: {{
+      legend: {{ position: 'bottom', labels: {{ boxWidth: 12, padding: 16, usePointStyle: true, font: {{ size: 11 }} }} }}
+    }}
+  }}
 }});
 </script>
 </body>
