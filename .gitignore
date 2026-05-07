@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Local-only artifacts (regenerable / large / sensitive)
+# NOTE: data/tracker.db and dashboard/index.html ARE tracked — the GitHub
+# Actions workflow commits them on every run. Don't add them here.
+data/raw/
+data/cron.log
+
+# Secrets — credentials live in GitHub Actions secrets, never in repo
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

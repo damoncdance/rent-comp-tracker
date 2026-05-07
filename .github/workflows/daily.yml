@@ -1,0 +1,104 @@
+name: Daily snapshot
+
+# Runs the rent-comp tracker once per day, commits the updated SQLite database
+# and dashboard HTML back to the repo, and publishes the dashboard to GitHub
+# Pages. Also runnable manually from the Actions tab.
+
+on:
+  schedule:
+    # 12:30 UTC = 6:30 AM Central winter / 7:30 AM Central summer.
+    # Adjust the cron string if you want a different time. GitHub Actions
+    # cron times are UTC; the schedule may run a few minutes late under load.
+    - cron: '30 12 * * *'
+  workflow_dispatch:        # adds a "Run workflow" button to the Actions tab
+
+# Required permissions for: writing data back to the repo, deploying Pages.
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Prevent overlapping runs (e.g. if a manual run and the schedule collide).
+concurrency:
+  group: daily-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    outputs:
+      dashboard-ready: ${{ steps.run.outputs.dashboard-ready }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          # We push back to the repo from this workflow; full history isn't
+          # needed but the default token has push rights.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize database if missing
+        run: |
+          if [ ! -f data/tracker.db ]; then
+            sudo apt-get install -y sqlite3
+            sqlite3 data/tracker.db < schema.sql
+            echo "Initialized fresh database from schema."
+          else
+            echo "Existing database found ($(stat -c %s data/tracker.db) bytes)."
+          fi
+
+      - name: Run daily snapshot
+        id: run
+        env:
+          NOTIFY_ENABLED: "true"
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_FROM:    ${{ secrets.NOTIFY_FROM }}
+          NOTIFY_TO:      ${{ secrets.NOTIFY_TO }}
+          # The dashboard URL is computed from the repo, so it works for any fork.
+          DASHBOARD_URL:  https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: |
+          python -m src.daily_run --verbose
+          # Even on fetch/parse failure (exit 1), we still want to commit the
+          # failure-snapshot row and deploy the dashboard. Capture exit code
+          # but don't fail the job here.
+          echo "dashboard-ready=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Commit updated data and dashboard
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ dashboard/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Daily snapshot: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
+
+      - name: Upload dashboard as Pages artifact
+        if: steps.run.outputs.dashboard-ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dashboard
+
+  deploy-pages:
+    needs: snapshot
+    if: needs.snapshot.outputs.dashboard-ready == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
