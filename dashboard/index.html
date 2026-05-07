@@ -7,114 +7,180 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --fg:#1a1a1a; --muted:#5c5c5c; --bg:#f3f4f6; --card:#fff; --line:#e5e7eb;
-    --accent:#1f4e78; --accent-soft:rgba(31,78,120,0.08); --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.06);
+    --fg:#e8e8e8; --fg-strong:#fff; --muted:#8a8f98; --bg:#0e1117; --card:#161b22;
+    --line:#30363d; --accent:#58a6ff; --accent-soft:rgba(88,166,255,0.08);
+    --green:#3fb950; --red:#f85149; --yellow:#d29922;
+    --mono:ui-monospace,SFMono-Regular,"Cascadia Mono",Menlo,monospace;
   }
-  * { box-sizing:border-box; }
+  * { box-sizing:border-box; margin:0; }
   body {
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); color:var(--fg); margin:0;
-    padding:clamp(16px,4vw,32px) clamp(16px,3vw,28px) 48px;
-    line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:0 clamp(12px,3vw,24px) 48px;
+    font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
   }
   header {
-    max-width:1120px; margin:0 auto 28px;
-    padding-bottom:20px; border-bottom:1px solid var(--line);
+    max-width:1200px; margin:0 auto;
+    padding:16px 0 0; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
   }
   h1 {
-    margin:0 0 10px; font-size:clamp(1.25rem,2.5vw,1.75rem); font-weight:700;
-    color:var(--accent); line-height:1.25; letter-spacing:-0.02em;
+    font-size:15px; font-weight:700; color:var(--fg-strong);
+    letter-spacing:-0.01em; white-space:nowrap;
   }
-  .meta { color:var(--muted); font-size:14px; line-height:1.55; max-width:62ch; }
-  .meta a { color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; }
-  .meta a:hover { border-bottom-color:var(--accent); }
+  .meta {
+    color:var(--muted); font-size:12px; font-family:var(--mono);
+    display:flex; gap:6px; flex-wrap:wrap; align-items:baseline;
+  }
+  .meta a { color:var(--accent); text-decoration:none; }
+  .meta a:hover { text-decoration:underline; }
+  .meta .sep { opacity:0.35; }
+
+  /* Tab bar */
+  .tabs {
+    max-width:1200px; margin:0 auto;
+    display:flex; gap:0; border-bottom:1px solid var(--line);
+    padding-top:10px;
+  }
+  .tab {
+    padding:8px 18px; font-size:12px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em; cursor:pointer;
+    border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0;
+    background:none; font-family:inherit; position:relative; bottom:-1px;
+  }
+  .tab:hover { color:var(--fg); }
+  .tab.active {
+    color:var(--fg-strong); background:var(--bg);
+    border-color:var(--line); border-bottom:1px solid var(--bg);
+  }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
   .grid {
-    max-width:1120px; margin:0 auto; display:grid;
-    grid-template-columns:repeat(12,minmax(0,1fr)); gap:clamp(12px,2vw,20px);
+    max-width:1200px; margin:12px auto 0; display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr)); gap:10px;
   }
   .card {
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:clamp(16px,2.5vw,22px); box-shadow:var(--shadow);
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:14px 16px;
   }
   .span-3 { grid-column:span 3; } .span-4 { grid-column:span 4; }
   .span-5 { grid-column:span 5; } .span-6 { grid-column:span 6; }
   .span-7 { grid-column:span 7; } .span-8 { grid-column:span 8; }
   .span-12 { grid-column:span 12; }
   @media (max-width:960px) {
-    .span-3,.span-4,.span-6,.span-8 { grid-column:span 12; }
-    .span-5,.span-7 { grid-column:span 12; }
+    .span-3 { grid-column:span 6; }
+    .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
   }
-  .stat-card { display:flex; flex-direction:column; justify-content:flex-end; min-height:92px; }
-  .stat { font-size:clamp(1.5rem,4vw,2rem); font-weight:700; color:var(--accent); line-height:1.1; margin-top:6px; }
-  .label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
-  .small { font-size:13px; color:var(--muted); margin-top:12px; line-height:1.45; }
+  @media (max-width:520px) {
+    .span-3 { grid-column:span 12; }
+  }
+
+  /* KPI stat cards */
+  .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
+  .label {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.08em; font-weight:600;
+  }
+  .stat {
+    font-size:22px; font-weight:700; color:var(--fg-strong);
+    font-family:var(--mono); line-height:1.15;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* Section headings */
   h2 {
-    margin:0 0 4px; font-size:15px; font-weight:600; color:var(--fg);
-    letter-spacing:-0.01em;
+    font-size:12px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em;
+    margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
   }
-  .card > h2 + .chart-wrap { margin-top:12px; }
-  .chart-wrap { position:relative; height:min(260px,42vw); width:100%; min-height:200px; }
-  .chart-wrap--tall { height:min(280px,48vw); min-height:220px; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
-  tbody tr:nth-child(even) td { background:var(--accent-soft); }
+  .small {
+    font-size:11px; color:var(--muted); margin-top:10px;
+    font-family:var(--mono); line-height:1.4;
+  }
+
+  /* Charts */
+  .chart-wrap { position:relative; height:220px; width:100%; }
+
+  /* Tables */
+  table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
+  th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:hover td { background:var(--accent-soft); }
   th {
-    background:#f9fafb; font-weight:600; font-size:11px;
-    text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
-    position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--line);
+    background:var(--card); font-weight:600; font-size:10px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    position:sticky; top:0; z-index:1;
   }
   th.num { text-align:right; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  td.mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
-  .muted { color:var(--muted); text-align:center; padding:28px !important; font-size:14px; }
+  td.mono { font-size:12px; }
+  td.note { color:var(--muted); font-size:11px; }
+  .muted { color:var(--muted); text-align:center; padding:24px !important; font-size:12px; }
   .scroll {
-    max-height:min(520px,55vh); overflow:auto; margin:0 -4px;
-    padding:0 4px; border-radius:8px; border:1px solid var(--line);
+    max-height:min(540px,58vh); overflow:auto;
+    border-radius:4px; border:1px solid var(--line);
     background:var(--card);
   }
   .scroll table { margin:0; }
-  .badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; }
-  .badge-add { background:#d1fae5; color:#065f46; }
-  .badge-remove { background:#fee2e2; color:#991b1b; }
-  .badge-change { background:#fef3c7; color:#92400e; }
+
+  /* Badges */
+  .badge {
+    display:inline-block; padding:2px 7px; border-radius:3px;
+    font-size:10px; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; white-space:nowrap; font-family:var(--mono);
+  }
+  .badge-add { background:rgba(63,185,80,0.15); color:var(--green); }
+  .badge-remove { background:rgba(248,81,73,0.15); color:var(--red); }
+  .badge-change { background:rgba(210,153,34,0.15); color:var(--yellow); }
+
+  /* Fees-specific */
+  .disclaimer {
+    color:var(--muted); font-size:11px; font-style:italic;
+    line-height:1.5; font-family:var(--mono);
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>Aberdeen Crossing — Availability</h1>
+  <h1>Aberdeen Crossing</h1>
   <div class="meta">
-    Snapshot #4 fetched May 07, 2026 23:32 UTC •
-    <a href="https://www.aberdeencrossingapts.com/floorplans" target="_blank" rel="noopener">source page</a> •
-    Page generated May 07, 2026 23:32 UTC
+    <span>snap #4</span><span class="sep">/</span>
+    <span>May 07, 2026 23:32 UTC</span><span class="sep">/</span>
+    <a href="https://www.aberdeencrossingapts.com/floorplans" target="_blank" rel="noopener">source</a>
   </div>
 </header>
 
+<div class="tabs">
+  <button class="tab active" data-tab="availability">Availability</button>
+  <button class="tab" data-tab="fees">Fees</button>
+</div>
+
+<div id="tab-availability" class="tab-panel active">
 <div class="grid">
-  <div class="card span-3 stat-card"><div class="label">Available units</div><div class="stat">75</div></div>
+  <div class="card span-3 stat-card"><div class="label">Units avail</div><div class="stat">75</div></div>
   <div class="card span-3 stat-card"><div class="label">Avg rent</div><div class="stat">$3,555</div></div>
-  <div class="card span-3 stat-card"><div class="label">Min rent</div><div class="stat">$2,192</div></div>
-  <div class="card span-3 stat-card"><div class="label">Max rent</div><div class="stat">$6,696</div></div>
+  <div class="card span-3 stat-card"><div class="label">Low</div><div class="stat">$2,192</div></div>
+  <div class="card span-3 stat-card"><div class="label">High</div><div class="stat">$6,696</div></div>
 
   <div class="card span-4">
-    <h2>Mix by unit type</h2>
+    <h2>Unit mix</h2>
     <div class="chart-wrap"><canvas id="mixChart" aria-label="Unit mix chart"></canvas></div>
   </div>
   <div class="card span-8">
-    <h2>Available units over time</h2>
+    <h2>Availability</h2>
     <div class="chart-wrap"><canvas id="totalChart" aria-label="Units over time chart"></canvas></div>
-    <div class="small">One point per snapshot. Build up history by letting the daily run go for a few days.</div>
+    <div class="small">daily snapshots — history builds over time</div>
   </div>
 
   <div class="card span-12">
-    <h2>Average rent over time, by unit type</h2>
-    <div class="chart-wrap chart-wrap--tall"><canvas id="rentChart" aria-label="Average rent by type chart"></canvas></div>
+    <h2>Avg rent by type</h2>
+    <div class="chart-wrap"><canvas id="rentChart" aria-label="Average rent by type chart"></canvas></div>
   </div>
 
   <div class="card span-7">
     <h2>Current units (75)</h2>
     <div class="scroll">
       <table>
-        <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">Sq ft</th><th class="num">Rent</th><th>Available</th></tr></thead>
+        <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">Sqft</th><th class="num">Rent</th><th>Avail</th></tr></thead>
         <tbody><tr><td>Studio</td><td>Tier 02 - Convertible</td><td class='mono'>1100-202</td><td class='num'>524</td><td class='num'>$2,332</td><td>Apr 23, 2026</td></tr><tr><td>Studio</td><td>Tier 02 - Convertible</td><td class='mono'>1100-402</td><td class='num'>524</td><td class='num'>$2,407</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 02 - Convertible</td><td class='mono'>1100-502</td><td class='num'>524</td><td class='num'>$2,432</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 02 - Convertible</td><td class='mono'>1100-602</td><td class='num'>524</td><td class='num'>$2,507</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 03 - Studio</td><td class='mono'>1100-403</td><td class='num'>468</td><td class='num'>$2,192</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 03 - Studio</td><td class='mono'>1100-503</td><td class='num'>468</td><td class='num'>$2,217</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 03 - Studio</td><td class='mono'>1100-603</td><td class='num'>468</td><td class='num'>$2,292</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 05 - Convertible</td><td class='mono'>1100-205</td><td class='num'>559</td><td class='num'>$2,488</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 05 - Convertible</td><td class='mono'>1100-305</td><td class='num'>559</td><td class='num'>$2,513</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 05 - Convertible</td><td class='mono'>1100-405</td><td class='num'>559</td><td class='num'>$2,563</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 05 - Convertible</td><td class='mono'>1100-505</td><td class='num'>559</td><td class='num'>$2,588</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 05 - Convertible</td><td class='mono'>1100-605</td><td class='num'>559</td><td class='num'>$2,663</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 06 - Convertible</td><td class='mono'>1100-306</td><td class='num'>539</td><td class='num'>$2,424</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 06 - Convertible</td><td class='mono'>1100-406</td><td class='num'>539</td><td class='num'>$2,449</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 06 - Convertible</td><td class='mono'>1100-506</td><td class='num'>539</td><td class='num'>$2,499</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 06 - Convertible</td><td class='mono'>1100-606</td><td class='num'>539</td><td class='num'>$2,574</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 12 - Convertible</td><td class='mono'>1100-312</td><td class='num'>542</td><td class='num'>$2,437</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 12 - Convertible</td><td class='mono'>1100-412</td><td class='num'>542</td><td class='num'>$2,487</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 12 - Convertible</td><td class='mono'>1100-512</td><td class='num'>542</td><td class='num'>$2,512</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 12 - Convertible</td><td class='mono'>1100-612</td><td class='num'>542</td><td class='num'>$2,587</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 13 - Convertible</td><td class='mono'>1100-213</td><td class='num'>539</td><td class='num'>$2,474</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 13 - Convertible</td><td class='mono'>1100-313</td><td class='num'>539</td><td class='num'>$2,524</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 13 - Convertible</td><td class='mono'>1100-413</td><td class='num'>539</td><td class='num'>$2,549</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 13 - Convertible</td><td class='mono'>1100-513</td><td class='num'>539</td><td class='num'>$2,574</td><td>Apr 01, 2026</td></tr><tr><td>Studio</td><td>Tier 13 - Convertible</td><td class='mono'>1100-613</td><td class='num'>539</td><td class='num'>$2,649</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 02 - Penthouse</td><td class='mono'>1100-702</td><td class='num'>739</td><td class='num'>$3,761</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 14 - One Bedroom</td><td class='mono'>1100-414</td><td class='num'>649</td><td class='num'>$2,861</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 14 - One Bedroom</td><td class='mono'>1100-514</td><td class='num'>649</td><td class='num'>$2,886</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 14 - One Bedroom</td><td class='mono'>1100-614</td><td class='num'>649</td><td class='num'>$2,961</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 14 - One Bedroom (Terrace)</td><td class='mono'>1100-214</td><td class='num'>649</td><td class='num'>$2,856</td><td>May 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 18 - One Bedroom</td><td class='mono'>1100-218</td><td class='num'>656</td><td class='num'>$2,690</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 18 - One Bedroom</td><td class='mono'>1100-318</td><td class='num'>656</td><td class='num'>$2,715</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 18 - One Bedroom</td><td class='mono'>1100-418</td><td class='num'>656</td><td class='num'>$2,740</td><td>Apr 23, 2026</td></tr><tr><td>1 BR</td><td>Tier 18 - One Bedroom</td><td class='mono'>1100-518</td><td class='num'>656</td><td class='num'>$2,765</td><td>Apr 01, 2026</td></tr><tr><td>1 BR</td><td>Tier 18 - Penthouse</td><td class='mono'>1100-718</td><td class='num'>656</td><td class='num'>$3,375</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 01 - Penthouse</td><td class='mono'>1100-701</td><td class='num'>975</td><td class='num'>$4,534</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 01 - Two Bedroom</td><td class='mono'>1100-201</td><td class='num'>975</td><td class='num'>$3,910</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 01 - Two Bedroom</td><td class='mono'>1100-501</td><td class='num'>975</td><td class='num'>$4,010</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 01 - Two Bedroom</td><td class='mono'>1100-601</td><td class='num'>975</td><td class='num'>$4,085</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 04 - Two Bedroom</td><td class='mono'>1100-304</td><td class='num'>990</td><td class='num'>$3,970</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 04 - Two Bedroom</td><td class='mono'>1100-404</td><td class='num'>990</td><td class='num'>$4,045</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 04 - Two Bedroom</td><td class='mono'>1100-504</td><td class='num'>990</td><td class='num'>$4,070</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 04 - Two Bedroom</td><td class='mono'>1100-604</td><td class='num'>990</td><td class='num'>$4,145</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 08 - Two Bedroom</td><td class='mono'>1100-208</td><td class='num'>982</td><td class='num'>$3,943</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 08 - Two Bedroom</td><td class='mono'>1100-308</td><td class='num'>982</td><td class='num'>$3,993</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 08 - Two Bedroom</td><td class='mono'>1100-408</td><td class='num'>982</td><td class='num'>$4,018</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 08 - Two Bedroom</td><td class='mono'>1100-508</td><td class='num'>982</td><td class='num'>$4,043</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 08 - Two Bedroom</td><td class='mono'>1100-608</td><td class='num'>982</td><td class='num'>$4,118</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 10 - Two Bedroom</td><td class='mono'>1100-310</td><td class='num'>934</td><td class='num'>$3,745</td><td>Mar 13, 2026</td></tr><tr><td>2 BR</td><td>Tier 10 - Two Bedroom</td><td class='mono'>1100-410</td><td class='num'>934</td><td class='num'>$3,820</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 10 - Two Bedroom</td><td class='mono'>1100-610</td><td class='num'>934</td><td class='num'>$3,920</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 10 - Two Bedroom (Terrace)</td><td class='mono'>1100-210</td><td class='num'>934</td><td class='num'>$4,203</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 11 - Two Bedroom</td><td class='mono'>1100-311</td><td class='num'>972</td><td class='num'>$3,898</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 11 - Two Bedroom</td><td class='mono'>1100-411</td><td class='num'>972</td><td class='num'>$3,973</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 11 - Two Bedroom</td><td class='mono'>1100-511</td><td class='num'>972</td><td class='num'>$3,998</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 11 - Two Bedroom</td><td class='mono'>1100-611</td><td class='num'>892</td><td class='num'>$3,732</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 15 - Two Bedroom</td><td class='mono'>1100-215</td><td class='num'>1,028</td><td class='num'>$4,133</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 15 - Two Bedroom</td><td class='mono'>1100-315</td><td class='num'>1,028</td><td class='num'>$4,183</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 15 - Two Bedroom</td><td class='mono'>1100-415</td><td class='num'>1,028</td><td class='num'>$4,233</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 15 - Two Bedroom</td><td class='mono'>1100-515</td><td class='num'>1,028</td><td class='num'>$4,233</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 15 - Two Bedroom</td><td class='mono'>1100-615</td><td class='num'>1,028</td><td class='num'>$4,308</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 17 - Two Bedroom</td><td class='mono'>1100-217</td><td class='num'>917</td><td class='num'>$3,495</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 17 - Two Bedroom</td><td class='mono'>1100-317</td><td class='num'>917</td><td class='num'>$3,721</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 17 - Two Bedroom</td><td class='mono'>1100-517</td><td class='num'>917</td><td class='num'>$3,771</td><td>Apr 01, 2026</td></tr><tr><td>2 BR</td><td>Tier 17 - Two Bedroom</td><td class='mono'>1100-617</td><td class='num'>917</td><td class='num'>$3,846</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 07 - Three Bedroom</td><td class='mono'>1100-307</td><td class='num'>1,166</td><td class='num'>$4,964</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 07 - Three Bedroom</td><td class='mono'>1100-407</td><td class='num'>1,166</td><td class='num'>$4,989</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 07 - Three Bedroom</td><td class='mono'>1100-507</td><td class='num'>1,166</td><td class='num'>$5,014</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 07 - Three Bedroom</td><td class='mono'>1100-607</td><td class='num'>1,166</td><td class='num'>$5,089</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Penthouse</td><td class='mono'>1100-719</td><td class='num'>1,327</td><td class='num'>$6,696</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Three Bedroom</td><td class='mono'>1100-219</td><td class='num'>1,327</td><td class='num'>$5,582</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Three Bedroom</td><td class='mono'>1100-319</td><td class='num'>1,327</td><td class='num'>$5,607</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Three Bedroom</td><td class='mono'>1100-419</td><td class='num'>1,327</td><td class='num'>$5,632</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Three Bedroom</td><td class='mono'>1100-519</td><td class='num'>1,327</td><td class='num'>$5,657</td><td>Apr 01, 2026</td></tr><tr><td>3 BR</td><td>Tier 19 - Three Bedroom</td><td class='mono'>1100-619</td><td class='num'>1,327</td><td class='num'>$5,732</td><td>Apr 01, 2026</td></tr></tbody>
       </table>
     </div>
@@ -130,21 +196,47 @@
     </div>
   </div>
 </div>
+</div>
+
+<div id="tab-fees" class="tab-panel">
+<div class="grid">
+  <div class="card span-6"><h2>Application &amp; admin</h2><div class="scroll"><table><thead><tr><th>Fee</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody><tr><td>Application fee</td><td class='num'>$75.00 per applicant</td><td class='note'>Non-refundable</td></tr><tr><td>Administration fee</td><td class='num'>$500.00</td><td class='note'>Due upon lease signing</td></tr><tr><td>Bike storage</td><td class='num'>Complimentary</td><td class='note'></td></tr></tbody></table></div></div>
+<div class="card span-6"><h2>Parking</h2><div class="scroll"><table><thead><tr><th>Type</th><th class="num">Monthly</th></tr></thead><tbody><tr><td>Standard (attached garage)</td><td class='num'>$350/mo</td></tr><tr><td>Semi-private (attached garage)</td><td class='num'>$450/mo</td></tr><tr><td>EV (attached garage)</td><td class='num'>$500/mo</td></tr></tbody></table></div></div>
+<div class="card span-6"><h2>Bundled services</h2><div class="small" style="margin:-2px 0 8px">Includes internet, gas, water, sewer, trash, and recycling.</div><div class="scroll"><table><thead><tr><th>Unit type</th><th class="num">Monthly</th></tr></thead><tbody><tr><td>Studio</td><td class='num'>$120/mo</td></tr><tr><td>Convertible</td><td class='num'>$130/mo</td></tr><tr><td>One bedroom</td><td class='num'>$140/mo</td></tr><tr><td>Two bedrooms</td><td class='num'>$160/mo</td></tr><tr><td>Three bedrooms</td><td class='num'>$195/mo</td></tr></tbody></table></div></div>
+<div class="card span-6"><h2>Pets</h2><div class="scroll"><table><thead><tr><th>Fee</th><th class="num">Amount</th></tr></thead><tbody><tr><td>One-time fee (1 pet)</td><td class='num'>$300</td></tr><tr><td>One-time fee (2 pets)</td><td class='num'>$450</td></tr><tr><td>Monthly pet rent</td><td class='num'>$35/pet</td></tr></tbody></table></div><div class="small">Max 2 pets per unit. Contact leasing office for breed restrictions.</div></div>
+<div class="card span-12"><p class="disclaimer">Pricing, fees, and incentives are subject to change without notice. Net effective rents may reflect concessions or limited-time offers. Contact the leasing office for the most current information.</p></div>
+</div>
+</div>
 
 <script>
+/* Tab switching */
+document.querySelectorAll('.tab').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+Chart.defaults.color = '#8a8f98';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
+Chart.defaults.font.size = 11;
+
 const counts = {"Studio": 25, "1 BR": 10, "2 BR": 30, "3 BR": 10};
 new Chart(document.getElementById('mixChart'), {
   type: 'doughnut',
   data: {
     labels: Object.keys(counts),
-    datasets: [{ data: Object.values(counts), backgroundColor: ['#1f4e78','#2e75b6','#5b9bd5','#9dc3e6'], borderWidth: 0 }]
+    datasets: [{ data: Object.values(counts), backgroundColor: ['#58a6ff','#3fb950','#d29922','#f85149'], borderWidth: 0 }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '52%',
+    cutout: '58%',
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: { size: 12 } } }
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } }
     }
   }
 });
@@ -155,16 +247,16 @@ new Chart(document.getElementById('totalChart'), {
   data: {
     labels: timeline.map(p => p.t.slice(0,10)),
     datasets: [{ label: 'Available units', data: timeline.map(p => p.count),
-                  borderColor: '#1f4e78', backgroundColor: 'rgba(31,78,120,0.1)', tension: 0.2, fill: true,
-                  borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 }]
+                  borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true,
+                  borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, pointBackgroundColor: '#58a6ff' }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { intersect: false, mode: 'index' },
     scales: {
-      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 11 } } },
-      y: { beginAtZero: true, ticks: { font: { size: 11 } } }
+      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+      y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } }
     },
     plugins: { legend: { display: false } }
   }
@@ -176,10 +268,10 @@ new Chart(document.getElementById('rentChart'), {
   data: {
     labels: rentSeries.map(p => p.t.slice(0,10)),
     datasets: [
-      { label: 'Studio',  data: rentSeries.map(p => p.studio),   borderColor: '#1f4e78', tension: 0.2, borderWidth: 2, pointRadius: 2 },
-      { label: '1 BR',    data: rentSeries.map(p => p.one_br),   borderColor: '#2e75b6', tension: 0.2, borderWidth: 2, pointRadius: 2 },
-      { label: '2 BR',    data: rentSeries.map(p => p.two_br),   borderColor: '#5b9bd5', tension: 0.2, borderWidth: 2, pointRadius: 2 },
-      { label: '3 BR',    data: rentSeries.map(p => p.three_br), borderColor: '#9dc3e6', tension: 0.2, borderWidth: 2, pointRadius: 2 },
+      { label: 'Studio',  data: rentSeries.map(p => p.studio),   borderColor: '#58a6ff', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+      { label: '1 BR',    data: rentSeries.map(p => p.one_br),   borderColor: '#3fb950', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+      { label: '2 BR',    data: rentSeries.map(p => p.two_br),   borderColor: '#d29922', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+      { label: '3 BR',    data: rentSeries.map(p => p.three_br), borderColor: '#f85149', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
     ]
   },
   options: {
@@ -187,16 +279,17 @@ new Chart(document.getElementById('rentChart'), {
     maintainAspectRatio: false,
     interaction: { intersect: false, mode: 'index' },
     scales: {
-      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 11 } } },
+      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
       y: {
         ticks: {
           callback: v => (v == null || v === '' ? '' : '$' + Number(v).toLocaleString()),
-          font: { size: 11 }
-        }
+          font: { size: 10 }
+        },
+        grid: { color: 'rgba(48,54,61,0.6)' }
       }
     },
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, usePointStyle: true, font: { size: 11 } } }
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: '#8a8f98' } }
     }
   }
 });

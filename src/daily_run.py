@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 
 from src.changes import diff_snapshots
 from src.dashboard import render
+from src.export_xlsx import export as export_xlsx
 from src.notify import send_digest
 from src.parser import parse_all, ParseError
 from src.scraper import fetch_html, FetchError
@@ -83,6 +84,9 @@ def main(argv: list[str] | None = None) -> int:
     # Step 5: render dashboard
     _safe_render(log)
 
+    # Step 5b: export xlsx comp report
+    _safe_export(snap_id, log)
+
     # Step 6: send email digest (silently skipped if NOTIFY_ENABLED != true)
     send_digest(snapshot_id=snap_id, log=log)
 
@@ -96,6 +100,19 @@ def _safe_render(log) -> None:
         log(f"Dashboard written to {path}")
     except Exception as e:
         log(f"DASHBOARD RENDER FAILED: {e}")
+        if "--verbose" in sys.argv:
+            traceback.print_exc()
+
+
+def _safe_export(snapshot_id: int, log) -> None:
+    try:
+        path = export_xlsx(snapshot_id)
+        if path:
+            log(f"Excel export written to {path}")
+        else:
+            log("Excel export skipped (no data)")
+    except Exception as e:
+        log(f"EXCEL EXPORT FAILED: {e}")
         if "--verbose" in sys.argv:
             traceback.print_exc()
 

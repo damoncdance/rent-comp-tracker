@@ -1,8 +1,9 @@
 """Email digest after each daily run, sent via the Resend API.
 
 Sends a multipart (text + HTML) summary of the latest snapshot:
-status, current availability, changes vs. previous snapshot, and a link
-to the dashboard.
+status, current availability, changes vs. previous snapshot, a link
+to the dashboard, and (when the export exists) the Excel workbook as an
+attachment via Resend.
 
 Configured via environment variables (loaded from .env locally; from
 GitHub Actions secrets when running in the cloud):
@@ -24,6 +25,7 @@ Run a test send (no full daily run needed):
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -32,6 +34,7 @@ from datetime import datetime, timezone
 import requests
 
 from src.config import DASHBOARD_DIR, PROPERTY_NAME
+from src.export_xlsx import report_workbook_path
 from src.storage import db, latest_snapshot_id
 
 
@@ -65,17 +68,28 @@ def send_digest(snapshot_id: int | None = None, log=print) -> bool:
         return False
 
     try:
-        subject, text_body, html_body = _build_digest(snap_id)
+        attachment = _resend_attachment_for_snapshot(snap_id, log)
+        subject, text_body, html_body = _build_digest(
+            snap_id, workbook_attached=attachment is not None,
+        )
     except Exception as e:
         log(f"notify: digest build failed: {type(e).__name__}: {e}")
         return False
 
-    return _send(subject, text_body, html_body, log)
+    return _send(subject, text_body, html_body, log, attachment=attachment)
 
 
 # --- Resend transport -------------------------------------------------------
 
-def _send(subject: str, text_body: str, html_body: str, log) -> bool:
+def _send(
+    subject: str,
+    text_body: str,
+    html_body: str,
+    log,
+    *,
+    attachment: dict | None = None,
+) -> bool:
+    """Send via Resend. `attachment` is Resend-shaped: filename, content (base64)."""
     recipients = [r.strip() for r in os.environ["NOTIFY_TO"].split(",") if r.strip()]
     payload = {
         "from":    os.environ["NOTIFY_FROM"],
@@ -84,6 +98,8 @@ def _send(subject: str, text_body: str, html_body: str, log) -> bool:
         "html":    html_body,
         "text":    text_body,
     }
+    if attachment:
+        payload["attachments"] = [attachment]
     headers = {
         "Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
         "Content-Type":  "application/json",
@@ -103,7 +119,8 @@ def _send(subject: str, text_body: str, html_body: str, log) -> bool:
             email_id = resp.json().get("id", "?")
         except Exception:
             email_id = "?"
-        log(f"notify: sent to {', '.join(recipients)} (Resend id={email_id})")
+        extra = f" + attachment {attachment['filename']}" if attachment else ""
+        log(f"notify: sent to {', '.join(recipients)} (Resend id={email_id}){extra}")
         return True
 
     # Resend returns helpful JSON on errors; surface it.
@@ -116,9 +133,38 @@ def _send(subject: str, text_body: str, html_body: str, log) -> bool:
     return False
 
 
+def _resend_attachment_for_snapshot(snapshot_id: int, log) -> dict | None:
+    """Build one Resend `attachments` element, or None if not applicable."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT fetch_status FROM snapshots WHERE id = ?", (snapshot_id,)
+        ).fetchone()
+    if not row or row["fetch_status"] != "success":
+        return None
+    path = report_workbook_path()
+    if not path.is_file():
+        log(f"notify: no workbook at {path}, skipping attachment")
+        return None
+    raw = path.read_bytes()
+    max_raw = 28 * 1024 * 1024  # under Resend total-email size limits
+    if len(raw) > max_raw:
+        log(f"notify: workbook too large ({len(raw)} bytes), not attaching")
+        return None
+    # Resend expects `filename` + base64 `content` only (see resend.com/docs).
+    log(f"notify: attaching workbook {path.name} ({len(raw) / 1024:.1f} KB)")
+    return {
+        "filename": path.name,
+        "content": base64.b64encode(raw).decode("ascii"),
+    }
+
+
 # --- Digest assembly --------------------------------------------------------
 
-def _build_digest(snapshot_id: int) -> tuple[str, str, str]:
+def _build_digest(
+    snapshot_id: int,
+    *,
+    workbook_attached: bool = False,
+) -> tuple[str, str, str]:
     """Return (subject, text_body, html_body)."""
     with db() as conn:
         snap = dict(conn.execute(
@@ -149,10 +195,15 @@ def _build_digest(snapshot_id: int) -> tuple[str, str, str]:
     if snap["fetch_status"] != "success":
         return _build_failure_digest(snap)
 
-    return _build_success_digest(snap, units, events, prev_unit_count)
+    return _build_success_digest(
+        snap, units, events, prev_unit_count,
+        workbook_attached=workbook_attached,
+    )
 
 
-def _build_success_digest(snap, units, events, prev_unit_count):
+def _build_success_digest(
+    snap, units, events, prev_unit_count, *, workbook_attached: bool = False,
+):
     counts_by_bed = {}
     for u in units:
         counts_by_bed[u["beds"]] = counts_by_bed.get(u["beds"], 0) + 1
@@ -199,6 +250,12 @@ def _build_success_digest(snap, units, events, prev_unit_count):
         text.append("")
 
     text.append(f"Dashboard: {_dashboard_url()}")
+    if workbook_attached:
+        text.append("")
+        text.append(
+            "Excel workbook attached: "
+            f"{report_workbook_path().name} — Availability Matrix, Tier Summary, Raw Data."
+        )
     text_body = "\n".join(text)
 
     # --- HTML ---
@@ -214,6 +271,7 @@ def _build_success_digest(snap, units, events, prev_unit_count):
         avg_rent=f"${avg_rent:,.0f}",
         changes_html=_html_changes(events),
         dashboard_url=_dashboard_url(),
+        workbook_attached=workbook_attached,
     )
 
     return subject, text_body, html_body
@@ -251,6 +309,7 @@ def _build_failure_digest(snap):
         changes_html="<p style='color:#666;margin:0'>If failures continue, see the "
                      "<code>scraper-recovery</code> skill in your project.</p>",
         dashboard_url=_dashboard_url(),
+        workbook_attached=False,
     )
 
     return subject, text_body, html_body
@@ -300,7 +359,16 @@ def _text_change_lines(events):
 
 def _html_template(*, property_name, fetched, status_label, status_color,
                    total, delta, mix_html, rent_range, avg_rent,
-                   changes_html, dashboard_url) -> str:
+                   changes_html, dashboard_url, workbook_attached: bool = False) -> str:
+    attach_row = ""
+    if workbook_attached:
+        attach_row = (
+            "<tr><td style=\"padding:0 28px 16px 28px;border-top:1px solid #e5e7eb;\">"
+            "<p style=\"margin:0;font-size:13px;color:#444;\">"
+            "<strong>Excel workbook attached</strong> — Availability Matrix, "
+            "Tier Summary, and Raw Data (same file as the repo export).</p>"
+            "</td></tr>"
+        )
     return f"""<!doctype html>
 <html><body style="margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f6f8fa;color:#1a1a1a;">
   <table role="presentation" width="100%" style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;border-collapse:collapse;">
@@ -335,6 +403,7 @@ def _html_template(*, property_name, fetched, status_label, status_color,
       <h3 style="margin:0 0 10px 0;font-size:14px;color:#1a1a1a;">Changes</h3>
       {changes_html}
     </td></tr>
+    {attach_row}
     <tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;background:#f6f8fa;border-radius:0 0 8px 8px;">
       <a href="{_e(dashboard_url)}" style="color:#1f4e78;font-size:13px;text-decoration:none;">View dashboard &rarr;</a>
     </td></tr>
