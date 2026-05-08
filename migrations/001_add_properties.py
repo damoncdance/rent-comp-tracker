@@ -24,7 +24,7 @@ PROPERTIES = [
     ("nevele22", "Nevele22", "1122 West Chicago Avenue, Chicago, IL 60642",
      "https://lipeproperty.appfolio.com/listings", "appfolio", 97, 0),
     ("seven-10-west", "Seven 10 West", "710 West Grand Avenue, Chicago, IL 60654",
-     "https://seven10westapartments.com/find-your-home/", "custom", 105, 0),
+     "https://seven10west.urbanapt.com/api/listings", "nestio", 105, 0),
     ("westerly", "Westerly", "740 North Aberdeen Street, Chicago, IL 60642",
      "https://sightmap.com/app/api/v1/8ywkdk14plx/sightmaps/76952", "sightmap", 188, 0),
     ("hugo-river-north", "Hugo River North", "751 North Hudson Avenue, Chicago, IL 60654",
@@ -73,7 +73,7 @@ def migrate():
                     (slug, name, address, url, platform, unit_count_total, is_subject, active, added_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (slug, name, address, url, platform, units, is_subject,
-                  1 if platform in ("rentcafe", "sightmap", "appfolio") else 0,
+                  1 if platform in ("rentcafe", "sightmap", "appfolio", "nestio") else 0,
                   now))
 
         # Step 3: Add property_id column to snapshots if missing
