@@ -1,4 +1,4 @@
-"""Fetch the floorplans page. Returns (html, http_status) or raises FetchError."""
+"""Fetch a property's floorplans page. Returns (html, http_status) or raises FetchError."""
 from __future__ import annotations
 
 import time
@@ -8,7 +8,7 @@ from pathlib import Path
 import requests
 
 from src.config import (
-    PROPERTY_URL, DEFAULT_HEADERS, REQUEST_TIMEOUT_SECONDS,
+    DEFAULT_HEADERS, REQUEST_TIMEOUT_SECONDS,
     MAX_RETRIES, RETRY_BACKOFF_SECONDS, RAW_DIR,
 )
 
@@ -17,11 +17,16 @@ class FetchError(Exception):
     """Raised when fetching fails after all retries."""
 
 
-def fetch_html(save_raw: bool = True, verbose: bool = False) -> tuple[str, int]:
+def fetch_html(
+    url: str,
+    slug: str = "unknown",
+    save_raw: bool = True,
+    verbose: bool = False,
+) -> tuple[str, int]:
     """Fetch the page with retries. Returns (html_text, http_status_code).
 
-    save_raw: when True, write the raw HTML to data/raw/YYYY-MM-DD.html so we
-              can re-parse historical snapshots if the parser changes.
+    save_raw: when True, write the raw HTML to data/raw/<slug>/YYYY-MM-DD.html
+              so we can re-parse historical snapshots if the parser changes.
     """
     last_error: Exception | None = None
     last_status: int | None = None
@@ -29,9 +34,9 @@ def fetch_html(save_raw: bool = True, verbose: bool = False) -> tuple[str, int]:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             if verbose:
-                print(f"  fetch attempt {attempt}/{MAX_RETRIES}: {PROPERTY_URL}")
+                print(f"  fetch attempt {attempt}/{MAX_RETRIES}: {url}")
             resp = requests.get(
-                PROPERTY_URL,
+                url,
                 headers=DEFAULT_HEADERS,
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
@@ -40,7 +45,7 @@ def fetch_html(save_raw: bool = True, verbose: bool = False) -> tuple[str, int]:
             if resp.status_code == 200:
                 html = resp.text
                 if save_raw:
-                    _write_raw(html)
+                    _write_raw(html, slug)
                 return html, 200
 
             # Non-200: sleep and retry, unless it's a hard 4xx that won't change.
@@ -63,9 +68,11 @@ def fetch_html(save_raw: bool = True, verbose: bool = False) -> tuple[str, int]:
     )
 
 
-def _write_raw(html: str) -> Path:
-    """Save HTML under data/raw/YYYY-MM-DD.html (overwrites same-day fetches)."""
+def _write_raw(html: str, slug: str) -> Path:
+    """Save HTML under data/raw/<slug>/YYYY-MM-DD.html."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    path = RAW_DIR / f"{today}.html"
+    prop_dir = RAW_DIR / slug
+    prop_dir.mkdir(parents=True, exist_ok=True)
+    path = prop_dir / f"{today}.html"
     path.write_text(html, encoding="utf-8")
     return path

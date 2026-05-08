@@ -5,27 +5,31 @@ Run with:
     python -m src.daily_run --verbose
 
 Exit codes:
-    0 = success (data captured)
-    1 = fetch or parse failed (a failure snapshot was still recorded)
+    0 = all properties succeeded
+    1 = at least one property failed (failures were recorded)
     2 = unexpected internal error
 """
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 
 from src.changes import diff_snapshots
+from src.config import get_active_properties
 from src.dashboard import render
 from src.export_xlsx import export as export_xlsx
 from src.notify import send_digest
-from src.parser import parse_all, ParseError
+from src.parsers import get_parser, UnsupportedPlatformError
 from src.scraper import fetch_html, FetchError
 from src.storage import (
     write_snapshot_failure, write_snapshot_success,
     write_change_events, previous_snapshot_id,
 )
+
+INTER_FETCH_DELAY = 5  # seconds between property fetches
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,38 +41,86 @@ def main(argv: list[str] | None = None) -> int:
     log("=" * 60)
     log(f"Daily run started at {datetime.now(timezone.utc).isoformat()}")
 
-    # Step 1: fetch
+    properties = get_active_properties()
+    if not properties:
+        log("No active properties found — nothing to do.")
+        return 0
+
+    log(f"Processing {len(properties)} active properties")
+
+    results = []  # list of (property, snapshot_id, success)
+
+    for i, prop in enumerate(properties):
+        if i > 0:
+            log(f"  waiting {INTER_FETCH_DELAY}s between fetches...")
+            time.sleep(INTER_FETCH_DELAY)
+
+        snap_id, ok = _run_one_property(prop, log, verbose=args.verbose)
+        results.append((prop, snap_id, ok))
+
+    # Render dashboard (uses Aberdeen/first property for now — Phase 4 will make it multi-property)
+    _safe_render(log)
+
+    # Export xlsx for each successful property
+    for prop, snap_id, ok in results:
+        if ok and snap_id:
+            _safe_export(prop, snap_id, log)
+
+    # Send consolidated email digest
+    snapshot_ids = {prop["id"]: snap_id for prop, snap_id, _ in results}
+    send_digest(snapshot_ids=snapshot_ids, log=log)
+
+    successes = sum(1 for _, _, ok in results if ok)
+    failures = len(results) - successes
+    log(f"Done. {successes} succeeded, {failures} failed.")
+
+    return 1 if failures > 0 else 0
+
+
+def _run_one_property(prop: dict, log, verbose: bool = False) -> tuple[int | None, bool]:
+    """Run fetch→parse→store→diff for one property. Returns (snapshot_id, success)."""
+    name = prop["name"]
+    slug = prop["slug"]
+    url = prop["url"]
+    platform = prop["platform"]
+    prop_id = prop["id"]
+
+    log(f"--- {name} ({slug}) [{platform}] ---")
+
+    # Get parser
     try:
-        html, http_status = fetch_html(verbose=args.verbose)
-        log(f"Fetched {len(html):,} bytes (HTTP {http_status})")
+        parser_mod = get_parser(platform)
+    except UnsupportedPlatformError as e:
+        log(f"  SKIPPED: {e}")
+        snap_id = write_snapshot_failure(prop_id, reason=f"no_parser:{platform}")
+        return snap_id, False
+
+    # Fetch
+    try:
+        html, http_status = fetch_html(url=url, slug=slug, verbose=verbose)
+        log(f"  Fetched {len(html):,} bytes (HTTP {http_status})")
     except FetchError as e:
-        log(f"FETCH FAILED: {e}")
-        snap_id = write_snapshot_failure(reason=str(e)[:200])
-        log(f"Recorded failure snapshot id={snap_id}")
-        _safe_render(log)
-        send_digest(snapshot_id=snap_id, log=log)
-        return 1
+        log(f"  FETCH FAILED: {e}")
+        snap_id = write_snapshot_failure(prop_id, reason=str(e)[:200])
+        return snap_id, False
 
-    # Step 2: parse
+    # Parse
     try:
-        units, floorplans = parse_all(html)
-        log(f"Parsed {len(units)} units across {len(floorplans)} floorplan tiers")
-    except ParseError as e:
-        log(f"PARSE FAILED: {e}")
-        snap_id = write_snapshot_failure(reason=f"parse:{e}", http_status=http_status)
-        log(f"Recorded failure snapshot id={snap_id}")
-        _safe_render(log)
-        send_digest(snapshot_id=snap_id, log=log)
-        return 1
+        units, floorplans = parser_mod.parse_all(html)
+        log(f"  Parsed {len(units)} units across {len(floorplans)} floorplan tiers")
+    except parser_mod.ParseError as e:
+        log(f"  PARSE FAILED: {e}")
+        snap_id = write_snapshot_failure(prop_id, reason=f"parse:{e}", http_status=http_status)
+        return snap_id, False
 
-    # Step 3: store snapshot
-    snap_id = write_snapshot_success(units, floorplans, http_status=http_status)
-    log(f"Snapshot id={snap_id} written")
+    # Store
+    snap_id = write_snapshot_success(prop_id, units, floorplans, http_status=http_status)
+    log(f"  Snapshot id={snap_id} written")
 
-    # Step 4: diff against previous
-    prev_id = previous_snapshot_id(snap_id)
+    # Diff
+    prev_id = previous_snapshot_id(snap_id, property_id=prop_id)
     if prev_id is None:
-        log("No prior snapshot — skipping diff")
+        log("  No prior snapshot — skipping diff")
     else:
         events = diff_snapshots(prev_id, snap_id)
         if events:
@@ -76,22 +128,12 @@ def main(argv: list[str] | None = None) -> int:
             counts: dict[str, int] = {}
             for e in events:
                 counts[e["event_type"]] = counts.get(e["event_type"], 0) + 1
-            log(f"Diff vs snapshot {prev_id}: " +
+            log(f"  Diff vs snapshot {prev_id}: " +
                 ", ".join(f"{n} {t}" for t, n in sorted(counts.items())))
         else:
-            log(f"Diff vs snapshot {prev_id}: no changes")
+            log(f"  Diff vs snapshot {prev_id}: no changes")
 
-    # Step 5: render dashboard
-    _safe_render(log)
-
-    # Step 5b: export xlsx comp report
-    _safe_export(snap_id, log)
-
-    # Step 6: send email digest (silently skipped if NOTIFY_ENABLED != true)
-    send_digest(snapshot_id=snap_id, log=log)
-
-    log("Done.")
-    return 0
+    return snap_id, True
 
 
 def _safe_render(log) -> None:
@@ -104,15 +146,15 @@ def _safe_render(log) -> None:
             traceback.print_exc()
 
 
-def _safe_export(snapshot_id: int, log) -> None:
+def _safe_export(prop: dict, snapshot_id: int, log) -> None:
     try:
-        path = export_xlsx(snapshot_id)
+        path = export_xlsx(snapshot_id, prop=prop)
         if path:
-            log(f"Excel export written to {path}")
+            log(f"  Excel export written to {path}")
         else:
-            log("Excel export skipped (no data)")
+            log(f"  Excel export skipped for {prop['name']} (no data)")
     except Exception as e:
-        log(f"EXCEL EXPORT FAILED: {e}")
+        log(f"  EXCEL EXPORT FAILED for {prop['name']}: {e}")
         if "--verbose" in sys.argv:
             traceback.print_exc()
 

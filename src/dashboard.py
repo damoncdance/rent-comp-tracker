@@ -9,7 +9,7 @@ import json
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from src.config import DASHBOARD_DIR, PROPERTY_NAME, PROPERTY_URL
+from src.config import DASHBOARD_DIR, PROPERTY_NAME, PROPERTY_URL, get_property_by_id
 from src.fees import FEES
 from src.storage import (
     db, latest_snapshot_id, snapshot_summary_history, recent_changes,
@@ -40,7 +40,13 @@ def _build_context(snap_id: int) -> dict:
             (snap_id,),
         ).fetchall()]
 
-    history_rows = snapshot_summary_history(limit=90)
+    # Resolve property info from snapshot
+    prop_id = snap.get("property_id")
+    prop = get_property_by_id(prop_id) if prop_id else None
+    prop_name = prop["name"] if prop else PROPERTY_NAME
+    prop_url = prop["url"] if prop else PROPERTY_URL
+
+    history_rows = snapshot_summary_history(limit=90, property_id=prop_id)
 
     # Build per-snapshot timeline: unit_count and avg rent by bed type
     by_snap: dict[int, dict] = {}
@@ -58,15 +64,15 @@ def _build_context(snap_id: int) -> dict:
         by_bed[u["beds"]].append(u)
 
     return {
-        "property_name": PROPERTY_NAME,
-        "property_url":  PROPERTY_URL,
+        "property_name": prop_name,
+        "property_url":  prop_url,
         "generated_at":  datetime.now(timezone.utc).isoformat(),
         "snapshot":      snap,
         "units":         units,
         "by_bed":        dict(by_bed),
         "timeline":      timeline,
-        "changes":       recent_changes(limit=50),
-        "fees":          FEES.get(PROPERTY_NAME),
+        "changes":       recent_changes(limit=50, property_id=prop_id),
+        "fees":          FEES.get(prop_name),
     }
 
 
@@ -191,12 +197,12 @@ def _render_html(ctx: dict) -> str:
     changes_html = "".join(_render_change_row(c) for c in ctx["changes"]) \
                    or "<tr><td colspan='4' class='muted'>No changes recorded yet — need at least 2 snapshots.</td></tr>"
 
-    # Timeline data for Chart.js
-    timeline_json = json.dumps([
+    # Timeline data for Chart.js (use _json_script_safe to prevent XSS)
+    timeline_json = _json_script_safe([
         {"t": t["fetched_at"], "count": t["unit_count"]}
         for t in ctx["timeline"]
     ])
-    avg_rent_series_json = json.dumps([
+    avg_rent_series_json = _json_script_safe([
         {
             "t": t["fetched_at"],
             "studio":  t["avg_rent_by_bed"].get(0),
@@ -432,7 +438,7 @@ Chart.defaults.borderColor = '#30363d';
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
 
-const counts = {json.dumps({bed_label(b): n for b, n in sorted(counts_by_bed.items())})};
+const counts = {_json_script_safe({bed_label(b): n for b, n in sorted(counts_by_bed.items())})};
 new Chart(document.getElementById('mixChart'), {{
   type: 'doughnut',
   data: {{
@@ -565,8 +571,17 @@ def _fmt_date(iso: str) -> str:
 
 
 def _e(s) -> str:
-    """Minimal HTML escape."""
+    """HTML escape using the standard library."""
     if s is None:
         return ""
-    return (str(s).replace("&", "&amp;").replace("<", "&lt;")
-                  .replace(">", "&gt;").replace('"', "&quot;"))
+    import html
+    return html.escape(str(s), quote=True)
+
+
+def _json_script_safe(data) -> str:
+    """Serialize data to JSON that's safe to embed inside <script> tags.
+
+    Escapes '</' sequences to prevent script tag injection from scraped content.
+    """
+    raw = json.dumps(data)
+    return raw.replace("</", r"<\/")

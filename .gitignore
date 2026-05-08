@@ -15,6 +15,10 @@ data/cron.log
 # Secrets — credentials live in GitHub Actions secrets, never in repo
 .env
 
+# Audit artifacts (regenerable, may contain diffs/prompts — never commit secrets)
+artifacts/*
+!artifacts/.gitkeep
+
 # OS
 .DS_Store
 Thumbs.db

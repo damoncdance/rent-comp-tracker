@@ -15,7 +15,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill, numbers
 from openpyxl.utils import get_column_letter
 
-from src.config import DATA_DIR, PROPERTY_NAME, PROPERTY_URL
+from src.config import DATA_DIR, PROPERTY_NAME, PROPERTY_URL, get_property_by_id
 from src.storage import db, latest_snapshot_id
 
 
@@ -34,10 +34,11 @@ _PSF_FMT     = '$#,##0.00'
 EXPORTS_DIR = DATA_DIR / "exports"
 
 
-def report_workbook_path() -> Path:
-    """Path where the latest availability workbook is written (per PROPERTY_NAME)."""
+def report_workbook_path(prop: dict | None = None) -> Path:
+    """Path where the latest availability workbook is written."""
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = _slugify(PROPERTY_NAME)
+    name = prop["name"] if prop else PROPERTY_NAME
+    slug = _slugify(name)
     return EXPORTS_DIR / f"{slug}_Availability.xlsx"
 
 
@@ -72,7 +73,7 @@ def _auto_width(ws, min_width: float = 8.0) -> None:
 
 # --- Public API --------------------------------------------------------------
 
-def export(snapshot_id: int | None = None) -> str | None:
+def export(snapshot_id: int | None = None, prop: dict | None = None) -> str | None:
     """Build the xlsx from a snapshot. Returns the output path, or None if no data."""
     if snapshot_id is None:
         snapshot_id = latest_snapshot_id()
@@ -85,6 +86,14 @@ def export(snapshot_id: int | None = None) -> str | None:
         ).fetchone()
         if snap is None or snap["fetch_status"] != "success":
             return None
+
+        # Resolve property info
+        if prop is None:
+            prop_id = snap["property_id"] if "property_id" in snap.keys() else None
+            if prop_id:
+                prop = get_property_by_id(prop_id)
+        prop_name = prop["name"] if prop else PROPERTY_NAME
+        prop_url = prop["url"] if prop else PROPERTY_URL
 
         units = [dict(r) for r in conn.execute(
             "SELECT * FROM units WHERE snapshot_id = ? "
@@ -110,29 +119,25 @@ def export(snapshot_id: int | None = None) -> str | None:
 
     wb = Workbook()
 
-    # ── Sheet 1: Availability Matrix ──────────────────────────────────────
+    # -- Sheet 1: Availability Matrix --
     ws1 = wb.active
     ws1.title = "Availability Matrix"
 
-    # Title row
     ws1.merge_cells("A1:G1")
     c = ws1["A1"]
-    c.value = f"{PROPERTY_NAME} — Availability Matrix"
+    c.value = f"{prop_name} — Availability Matrix"
     c.font = _TITLE_FONT
 
-    # Subtitle row
-    domain = PROPERTY_URL.split("//")[-1].split("/")[0].replace("www.", "")
+    domain = prop_url.split("//")[-1].split("/")[0].replace("www.", "")
     ws1.merge_cells("A2:F2")
     c = ws1["A2"]
     c.value = f"Source: {domain}/floorplans  |  Snapshot: {snap_date_str}  |  Total available units: {unit_count}"
     c.font = _SUB_FONT
 
-    # Header row (row 4)
     headers = ["Unit Type", "Floorplan / Tier", "Unit Number",
                "Beds / Baths", "Sq Ft", "Rent", "Available Date"]
     _apply_header_row(ws1, 4, headers)
 
-    # Group units by bed type
     by_bed: dict[int, list[dict]] = defaultdict(list)
     for u in units:
         by_bed[u["beds"]].append(u)
@@ -143,7 +148,6 @@ def export(snapshot_id: int | None = None) -> str | None:
         label = _bed_label(beds)
         count = len(bed_units)
 
-        # Section header (merged row)
         ws1.merge_cells(f"A{row}:G{row}")
         c = ws1.cell(row=row, column=1, value=f"{label}  ({count} available)")
         c.font = _SECTION_FONT
@@ -166,7 +170,6 @@ def export(snapshot_id: int | None = None) -> str | None:
                 ws1.cell(row=row, column=7, value=u.get("available_date", ""))
             row += 1
 
-    # Column widths
     ws1.column_dimensions["A"].width = 18
     ws1.column_dimensions["B"].width = 30
     ws1.column_dimensions["C"].width = 14
@@ -175,7 +178,7 @@ def export(snapshot_id: int | None = None) -> str | None:
     ws1.column_dimensions["F"].width = 12
     ws1.column_dimensions["G"].width = 16
 
-    # ── Sheet 2: Tier Summary ────────────────────────────────────────────
+    # -- Sheet 2: Tier Summary --
     ws2 = wb.create_sheet("Tier Summary")
 
     ws2.merge_cells("A1:H1")
@@ -203,7 +206,6 @@ def export(snapshot_id: int | None = None) -> str | None:
         c = ws2.cell(row=row, column=5, value=int(fp["min_sqft"]))
         c.number_format = _NUM_FMT
 
-        # Rent range as formatted string (matches reference)
         mn, mx = int(fp["min_rent"]), int(fp["max_rent"])
         rent_str = f"${mn:,}" if mn == mx else f"${mn:,} – ${mx:,}"
         ws2.cell(row=row, column=6, value=rent_str)
@@ -218,7 +220,6 @@ def export(snapshot_id: int | None = None) -> str | None:
             ws2.cell(row=row, column=8, value=fp.get("available_date", ""))
         row += 1
 
-    # Totals row
     total_row = row
     ws2.cell(row=total_row, column=1, value="TOTAL")
     ws2.cell(row=total_row, column=7,
@@ -233,7 +234,7 @@ def export(snapshot_id: int | None = None) -> str | None:
     ws2.column_dimensions["G"].width = 14
     ws2.column_dimensions["H"].width = 18
 
-    # ── Sheet 3: Raw Data ────────────────────────────────────────────────
+    # -- Sheet 3: Raw Data --
     ws3 = wb.create_sheet("Raw Data")
 
     raw_headers = ["Unit Code", "Floorplan", "Bed Type", "Beds", "Baths",
@@ -258,7 +259,6 @@ def export(snapshot_id: int | None = None) -> str | None:
             c.number_format = _DATE_FMT
         except (ValueError, AttributeError):
             ws3.cell(row=i, column=9, value=u.get("available_date", ""))
-        # Rent / Sq Ft formula
         c = ws3.cell(row=i, column=10, value=f"=G{i}/F{i}")
         c.number_format = _PSF_FMT
 
@@ -273,9 +273,9 @@ def export(snapshot_id: int | None = None) -> str | None:
     ws3.column_dimensions["I"].width = 16
     ws3.column_dimensions["J"].width = 13
 
-    # ── Save ─────────────────────────────────────────────────────────────
+    # -- Save --
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = _slugify(PROPERTY_NAME)
+    slug = _slugify(prop_name)
     out_path = EXPORTS_DIR / f"{slug}_Availability.xlsx"
     wb.save(str(out_path))
     return str(out_path)

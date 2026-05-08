@@ -1,11 +1,9 @@
-"""Project configuration. Edit here to point at a different property."""
+"""Project configuration and property registry."""
+from __future__ import annotations
+
 import os
+import sqlite3
 from pathlib import Path
-
-# --- Target -----------------------------------------------------------------
-
-PROPERTY_NAME = "Aberdeen Crossing"
-PROPERTY_URL  = "https://www.aberdeencrossingapts.com/floorplans"
 
 # --- Paths ------------------------------------------------------------------
 
@@ -18,6 +16,53 @@ DB_PATH       = DATA_DIR / "tracker.db"
 # Ensure runtime directories exist.
 RAW_DIR.mkdir(parents=True, exist_ok=True)
 DASHBOARD_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Legacy constants (backwards compat — used by dashboard/notify/export) --
+
+PROPERTY_NAME = "Aberdeen Crossing"
+PROPERTY_URL  = "https://www.aberdeencrossingapts.com/floorplans"
+
+
+# --- Property registry (reads from DB) --------------------------------------
+
+def get_active_properties() -> list[dict]:
+    """Return all active properties as dicts, ordered by is_subject DESC then name."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM properties WHERE active = 1 "
+            "ORDER BY is_subject DESC, name"
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_property(slug: str) -> dict | None:
+    """Return a single property by slug, or None."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT * FROM properties WHERE slug = ?", (slug,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_property_by_id(property_id: int) -> dict | None:
+    """Return a single property by id, or None."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT * FROM properties WHERE id = ?", (property_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 # --- HTTP -------------------------------------------------------------------
 

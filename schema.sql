@@ -1,9 +1,23 @@
--- Aberdeen Crossing Availability Tracker schema
+-- Rent Comp Tracker schema — multi-property
 -- Append-only design: every fetch writes a new snapshot row.
 -- Never UPDATE existing rows; that would erase history.
 
+CREATE TABLE IF NOT EXISTS properties (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug            TEXT    NOT NULL UNIQUE,    -- url-safe identifier, e.g. "aberdeen-crossing"
+    name            TEXT    NOT NULL,           -- display name, e.g. "Aberdeen Crossing"
+    address         TEXT,                       -- street address
+    url             TEXT    NOT NULL,           -- floorplans/availability page URL
+    platform        TEXT    NOT NULL DEFAULT 'rentcafe',  -- parser key: rentcafe, securecafe, appfolio, funnel, custom
+    unit_count_total INTEGER,                  -- total units in the building (for occupancy/exposure calc)
+    is_subject      INTEGER NOT NULL DEFAULT 0, -- 1 for the subject property (Inspire West Town)
+    active          INTEGER NOT NULL DEFAULT 1, -- 0 to skip during daily runs
+    added_at        TEXT    NOT NULL            -- ISO 8601 UTC
+);
+
 CREATE TABLE IF NOT EXISTS snapshots (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    property_id     INTEGER NOT NULL REFERENCES properties(id),
     fetched_at      TEXT    NOT NULL,           -- ISO 8601 UTC
     fetch_status    TEXT    NOT NULL,           -- 'success' or 'failed:<reason>'
     http_status     INTEGER,                    -- HTTP status code, NULL on network errors

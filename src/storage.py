@@ -27,20 +27,25 @@ def db():
         conn.close()
 
 
-def write_snapshot_failure(reason: str, http_status: int | None = None) -> int:
+def write_snapshot_failure(
+    property_id: int,
+    reason: str,
+    http_status: int | None = None,
+) -> int:
     """Record a fetch attempt that didn't produce parsable data. Returns snapshot id."""
     now = datetime.now(timezone.utc).isoformat()
     with db() as conn:
         cur = conn.execute(
             """INSERT INTO snapshots
-                 (fetched_at, fetch_status, http_status, unit_count, floorplan_count)
-               VALUES (?, ?, ?, NULL, NULL)""",
-            (now, f"failed:{reason}", http_status),
+                 (property_id, fetched_at, fetch_status, http_status, unit_count, floorplan_count)
+               VALUES (?, ?, ?, ?, NULL, NULL)""",
+            (property_id, now, f"failed:{reason}", http_status),
         )
         return cur.lastrowid
 
 
 def write_snapshot_success(
+    property_id: int,
     units: list[dict],
     floorplans: list[dict],
     http_status: int = 200,
@@ -51,10 +56,10 @@ def write_snapshot_success(
     with db() as conn:
         cur = conn.execute(
             """INSERT INTO snapshots
-                 (fetched_at, fetch_status, http_status, unit_count,
+                 (property_id, fetched_at, fetch_status, http_status, unit_count,
                   floorplan_count, raw_html_path)
-               VALUES (?, 'success', ?, ?, ?, ?)""",
-            (now, http_status, len(units), len(floorplans),
+               VALUES (?, ?, 'success', ?, ?, ?, ?)""",
+            (property_id, now, http_status, len(units), len(floorplans),
              str(raw_html_path) if raw_html_path else None),
         )
         snapshot_id = cur.lastrowid
@@ -115,25 +120,46 @@ def write_change_events(snapshot_id: int, events: list[dict]) -> None:
         )
 
 
-def latest_snapshot_id() -> int | None:
-    """Return the most recent successful snapshot id, or None."""
+def latest_snapshot_id(property_id: int | None = None) -> int | None:
+    """Return the most recent successful snapshot id, or None.
+
+    If property_id is given, scoped to that property. Otherwise global.
+    """
     with db() as conn:
-        row = conn.execute(
-            "SELECT id FROM snapshots WHERE fetch_status = 'success' "
-            "ORDER BY id DESC LIMIT 1"
-        ).fetchone()
+        if property_id is not None:
+            row = conn.execute(
+                "SELECT id FROM snapshots WHERE fetch_status = 'success' "
+                "AND property_id = ? ORDER BY id DESC LIMIT 1",
+                (property_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT id FROM snapshots WHERE fetch_status = 'success' "
+                "ORDER BY id DESC LIMIT 1"
+            ).fetchone()
         return row["id"] if row else None
 
 
-def previous_snapshot_id(before_id: int) -> int | None:
-    """Most recent successful snapshot strictly before `before_id`."""
+def previous_snapshot_id(before_id: int, property_id: int | None = None) -> int | None:
+    """Most recent successful snapshot strictly before `before_id`.
+
+    If property_id is given, scoped to that property.
+    """
     with db() as conn:
-        row = conn.execute(
-            "SELECT id FROM snapshots "
-            "WHERE fetch_status = 'success' AND id < ? "
-            "ORDER BY id DESC LIMIT 1",
-            (before_id,),
-        ).fetchone()
+        if property_id is not None:
+            row = conn.execute(
+                "SELECT id FROM snapshots "
+                "WHERE fetch_status = 'success' AND id < ? AND property_id = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (before_id, property_id),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT id FROM snapshots "
+                "WHERE fetch_status = 'success' AND id < ? "
+                "ORDER BY id DESC LIMIT 1",
+                (before_id,),
+            ).fetchone()
         return row["id"] if row else None
 
 
@@ -146,36 +172,64 @@ def units_for_snapshot(snapshot_id: int) -> dict[str, dict]:
         return {r["unit_code"]: dict(r) for r in rows}
 
 
-def snapshot_summary_history(limit: int = 90) -> list[dict]:
+def snapshot_summary_history(limit: int = 90, property_id: int | None = None) -> list[dict]:
     """Per-snapshot rollups for charts: total units + avg rent by bed type."""
     with db() as conn:
-        rows = conn.execute(
-            """
-            SELECT s.id, s.fetched_at, s.unit_count,
-                   u.beds, COUNT(*) AS n, AVG(u.min_rent) AS avg_rent
-              FROM snapshots s
-              JOIN units u ON u.snapshot_id = s.id
-             WHERE s.fetch_status = 'success'
-             GROUP BY s.id, u.beds
-             ORDER BY s.id DESC
-             LIMIT ?
-            """,
-            (limit * 4,),  # ~4 bed types per snapshot
-        ).fetchall()
+        if property_id is not None:
+            rows = conn.execute(
+                """
+                SELECT s.id, s.fetched_at, s.unit_count,
+                       u.beds, COUNT(*) AS n, AVG(u.min_rent) AS avg_rent
+                  FROM snapshots s
+                  JOIN units u ON u.snapshot_id = s.id
+                 WHERE s.fetch_status = 'success' AND s.property_id = ?
+                 GROUP BY s.id, u.beds
+                 ORDER BY s.id DESC
+                 LIMIT ?
+                """,
+                (property_id, limit * 4),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT s.id, s.fetched_at, s.unit_count,
+                       u.beds, COUNT(*) AS n, AVG(u.min_rent) AS avg_rent
+                  FROM snapshots s
+                  JOIN units u ON u.snapshot_id = s.id
+                 WHERE s.fetch_status = 'success'
+                 GROUP BY s.id, u.beds
+                 ORDER BY s.id DESC
+                 LIMIT ?
+                """,
+                (limit * 4,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
 
-def recent_changes(limit: int = 50) -> list[dict]:
+def recent_changes(limit: int = 50, property_id: int | None = None) -> list[dict]:
     """Most recent change events with snapshot timestamps."""
     with db() as conn:
-        rows = conn.execute(
-            """
-            SELECT ce.*, s.fetched_at AS snapshot_fetched_at
-              FROM change_events ce
-              JOIN snapshots s ON s.id = ce.snapshot_id
-             ORDER BY ce.id DESC
-             LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        if property_id is not None:
+            rows = conn.execute(
+                """
+                SELECT ce.*, s.fetched_at AS snapshot_fetched_at
+                  FROM change_events ce
+                  JOIN snapshots s ON s.id = ce.snapshot_id
+                 WHERE s.property_id = ?
+                 ORDER BY ce.id DESC
+                 LIMIT ?
+                """,
+                (property_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT ce.*, s.fetched_at AS snapshot_fetched_at
+                  FROM change_events ce
+                  JOIN snapshots s ON s.id = ce.snapshot_id
+                 ORDER BY ce.id DESC
+                 LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
         return [dict(r) for r in rows]
