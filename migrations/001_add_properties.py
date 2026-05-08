@@ -73,7 +73,7 @@ def migrate():
                     (slug, name, address, url, platform, unit_count_total, is_subject, active, added_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (slug, name, address, url, platform, units, is_subject,
-                  1 if platform in ("rentcafe", "sightmap", "appfolio", "nestio") else 0,
+                  1 if platform in ("rentcafe", "sightmap", "appfolio", "nestio", "securecafe") else 0,
                   now))
 
         # Step 3: Add property_id column to snapshots if missing

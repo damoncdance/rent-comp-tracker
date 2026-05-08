@@ -1,6 +1,12 @@
-"""Fetch a property's floorplans page. Returns (html, http_status) or raises FetchError."""
+"""Fetch a property's floorplans page. Returns (html, http_status) or raises FetchError.
+
+For most platforms, a simple requests.get() with browser-like headers suffices.
+SecureCafe sites sit behind Cloudflare bot protection and require a real browser
+(Playwright) to solve the JS challenge.
+"""
 from __future__ import annotations
 
+import json
 import re
 import time
 from datetime import datetime, timezone
@@ -67,6 +73,89 @@ def fetch_html(
         f"All {MAX_RETRIES} attempts failed. "
         f"Last status={last_status}, last_error={last_error}"
     )
+
+
+def fetch_securecafe(
+    url: str,
+    slug: str = "unknown",
+    save_raw: bool = True,
+    verbose: bool = False,
+) -> tuple[str, int]:
+    """Fetch a SecureCafe page via Playwright, solving Cloudflare challenge.
+
+    Returns (pageData_json, 200) where pageData_json is the JSON-serialized
+    pageData object extracted from the page via JS evaluation.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise FetchError(
+            "playwright is not installed — required for SecureCafe sites. "
+            "Run: pip install playwright && python -m playwright install chromium"
+        )
+
+    if verbose:
+        print(f"  Playwright fetch: {url}")
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=False,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--window-size=1920,1080",
+                ],
+            )
+            context = browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                user_agent=(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/136.0.0.0 Safari/537.36"
+                ),
+            )
+            page = context.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+
+            # Wait for Cloudflare challenge to resolve and page to render
+            page_data = None
+            for i in range(20):
+                time.sleep(2)
+                title = page.title()
+                if verbose:
+                    print(f"    waiting ({(i+1)*2}s) — title: {title}")
+
+                # Once past Cloudflare, extract pageData
+                if "moment" not in title.lower():
+                    try:
+                        page_data = page.evaluate("JSON.stringify(pageData)")
+                        break
+                    except Exception:
+                        # pageData might not be defined yet
+                        if i > 5:
+                            break
+                        continue
+
+            html = page.content()
+            browser.close()
+
+        if page_data is None:
+            raise FetchError("pageData not found after Cloudflare challenge")
+
+        # Validate it's real JSON
+        parsed = json.loads(page_data)
+        if "floorplans" not in parsed:
+            raise FetchError("pageData missing 'floorplans' key")
+
+        if save_raw:
+            _write_raw(page_data, slug)
+
+        return page_data, 200
+
+    except FetchError:
+        raise
+    except Exception as e:
+        raise FetchError(f"Playwright fetch failed: {e}")
 
 
 def _write_raw(html: str, slug: str) -> Path:

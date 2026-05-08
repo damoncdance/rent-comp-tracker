@@ -45,6 +45,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
 
       - name: Initialize database if missing
         run: |
@@ -66,7 +67,9 @@ jobs:
           # The dashboard URL is computed from the repo, so it works for any fork.
           DASHBOARD_URL:  https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: |
-          python -m src.daily_run --verbose
+          # xvfb-run provides a virtual display for Playwright headed mode
+          # (needed to bypass Cloudflare on SecureCafe properties)
+          xvfb-run python -m src.daily_run --verbose
           # Even on fetch/parse failure (exit 1), we still want to commit the
           # failure-snapshot row and deploy the dashboard. Capture exit code
           # but don't fail the job here.
