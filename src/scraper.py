@@ -38,13 +38,20 @@ def fetch_html(
     last_error: Exception | None = None
     last_status: int | None = None
 
+    # For JSON API endpoints, drop brotli from Accept-Encoding (Python 3.9
+    # requests can't decompress it) and request JSON explicitly.
+    headers = dict(DEFAULT_HEADERS)
+    if "wp-json" in url or "api" in url:
+        headers["Accept"] = "application/json"
+        headers["Accept-Encoding"] = "gzip, deflate"
+
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             if verbose:
                 print(f"  fetch attempt {attempt}/{MAX_RETRIES}: {url}")
             resp = requests.get(
                 url,
-                headers=DEFAULT_HEADERS,
+                headers=headers,
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
             last_status = resp.status_code

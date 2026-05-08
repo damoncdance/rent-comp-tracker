@@ -30,7 +30,7 @@ PROPERTIES = [
     ("hugo-river-north", "Hugo River North", "751 North Hudson Avenue, Chicago, IL 60654",
      "https://sightmap.com/app/api/v1/yzvgo8o7wln/sightmaps/39454", "sightmap", 227, 0),
     ("812-west-adams", "812 West Adams", "812 West Adams Street, Chicago, IL 60607",
-     "https://812adams.net/", "custom", 80, 0),
+     "https://812adams.net/wp-json/wc/store/v1/products?per_page=100", "woocommerce", 80, 0),
     ("the-jax", "The Jax", "1220 West Jackson Boulevard, Chicago, IL 60607",
      "https://cagan.securecafe.com/onlineleasing/1220-w-jackson-blvd/floorplans", "securecafe", 172, 0),
     ("the-ardus", "The Ardus", "676 North LaSalle Drive, Chicago, IL 60654",
@@ -40,7 +40,7 @@ PROPERTIES = [
     ("arthurs-of-old-town", "Arthurs of Old Town", "300 West Division Street, Chicago, IL 60610",
      "https://divisionllc.appfolio.com/listings", "appfolio", 89, 0),
     ("the-van-buren", "The Van Buren", "808 West Van Buren Street, Chicago, IL 60607",
-     "https://thevanburenchicago.com/", "custom", 148, 0),
+     "https://www.thevanburen.com/floorplans.aspx", "securecafe", 148, 0),
 ]
 
 
@@ -73,7 +73,7 @@ def migrate():
                     (slug, name, address, url, platform, unit_count_total, is_subject, active, added_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (slug, name, address, url, platform, units, is_subject,
-                  1 if platform in ("rentcafe", "sightmap", "appfolio", "nestio", "securecafe") else 0,
+                  1 if platform in ("rentcafe", "sightmap", "appfolio", "nestio", "securecafe", "woocommerce") else 0,
                   now))
 
         # Step 3: Add property_id column to snapshots if missing

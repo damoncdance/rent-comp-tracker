@@ -68,28 +68,42 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
         })
 
         # Build individual unit records from unitList
-        if unit_list and avail_count > 0:
-            # SecureCafe provides unit numbers but not per-unit rents.
-            # Distribute the price range evenly if multiple units exist.
-            for i, unit_code in enumerate(unit_list):
-                if avail_count > 1 and low_price != high_price:
-                    # Interpolate rent across units
-                    frac = i / (len(unit_list) - 1) if len(unit_list) > 1 else 0
-                    rent = low_price + frac * (high_price - low_price)
-                else:
-                    rent = low_price
+        if avail_count > 0:
+            if unit_list:
+                # SecureCafe provides unit numbers but not per-unit rents.
+                # Distribute the price range evenly if multiple units exist.
+                for i, unit_code in enumerate(unit_list):
+                    if avail_count > 1 and low_price != high_price:
+                        frac = i / (len(unit_list) - 1) if len(unit_list) > 1 else 0
+                        rent = low_price + frac * (high_price - low_price)
+                    else:
+                        rent = low_price
 
-                units.append({
-                    "UnitCode": str(unit_code),
-                    "FloorplanId": fp_id,
-                    "FloorplanName": fp_name,
-                    "Beds": beds,
-                    "Baths": baths,
-                    "SqFt": sqft_val,
-                    "MinRent": round(rent, 2),
-                    "MaxRent": round(rent, 2),
-                    "AvailableDate": _normalize_date(avail_date),
-                })
+                    units.append({
+                        "UnitCode": str(unit_code),
+                        "FloorplanId": fp_id,
+                        "FloorplanName": fp_name,
+                        "Beds": beds,
+                        "Baths": baths,
+                        "SqFt": sqft_val,
+                        "MinRent": round(rent, 2),
+                        "MaxRent": round(rent, 2),
+                        "AvailableDate": _normalize_date(avail_date),
+                    })
+            else:
+                # No unit numbers provided — synthesize one record per available unit
+                for i in range(avail_count):
+                    units.append({
+                        "UnitCode": f"{fp_name}-{i+1}",
+                        "FloorplanId": fp_id,
+                        "FloorplanName": fp_name,
+                        "Beds": beds,
+                        "Baths": baths,
+                        "SqFt": sqft_val,
+                        "MinRent": low_price,
+                        "MaxRent": high_price,
+                        "AvailableDate": _normalize_date(avail_date),
+                    })
 
     return units, floorplans
 
