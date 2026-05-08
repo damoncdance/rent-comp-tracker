@@ -10,6 +10,7 @@ venv/
 # NOTE: data/tracker.db and dashboard/index.html ARE tracked — the GitHub
 # Actions workflow commits them on every run. Don't add them here.
 data/raw/
+data/exports/
 data/cron.log
 
 # Secrets — credentials live in GitHub Actions secrets, never in repo

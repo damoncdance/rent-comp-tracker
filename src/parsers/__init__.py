@@ -25,17 +25,13 @@ def get_parser(platform: str) -> ModuleType:
     if platform == "rentcafe":
         from src.parsers import rentcafe
         return rentcafe
-    # Future parsers:
-    # if platform == "securecafe":
-    #     from src.parsers import securecafe
-    #     return securecafe
-    # if platform == "appfolio":
-    #     from src.parsers import appfolio
-    #     return appfolio
-    # if platform == "funnel":
-    #     from src.parsers import funnel
-    #     return funnel
+    if platform == "sightmap":
+        from src.parsers import sightmap
+        return sightmap
+    if platform == "appfolio":
+        from src.parsers import appfolio
+        return appfolio
     raise UnsupportedPlatformError(
         f"No parser for platform '{platform}'. "
-        f"Supported: rentcafe"
+        f"Supported: rentcafe, sightmap, appfolio"
     )

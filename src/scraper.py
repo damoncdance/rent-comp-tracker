@@ -1,6 +1,7 @@
 """Fetch a property's floorplans page. Returns (html, http_status) or raises FetchError."""
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -70,6 +71,8 @@ def fetch_html(
 
 def _write_raw(html: str, slug: str) -> Path:
     """Save HTML under data/raw/<slug>/YYYY-MM-DD.html."""
+    if not re.match(r'^[a-z0-9][a-z0-9-]*$', slug):
+        slug = re.sub(r'[^a-z0-9-]', '', slug.lower()) or "unknown"
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     prop_dir = RAW_DIR / slug
     prop_dir.mkdir(parents=True, exist_ok=True)

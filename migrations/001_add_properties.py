@@ -22,23 +22,23 @@ PROPERTIES = [
     ("inspire-west-town", "Inspire West Town", "670 North May Street, Chicago, IL 60642",
      "https://www.iwtchicago.com/floorplans", "rentcafe", 113, 1),
     ("nevele22", "Nevele22", "1122 West Chicago Avenue, Chicago, IL 60642",
-     "https://nevele22.com/apartments/", "appfolio", 97, 0),
+     "https://lipeproperty.appfolio.com/listings", "appfolio", 97, 0),
     ("seven-10-west", "Seven 10 West", "710 West Grand Avenue, Chicago, IL 60654",
      "https://seven10westapartments.com/find-your-home/", "custom", 105, 0),
     ("westerly", "Westerly", "740 North Aberdeen Street, Chicago, IL 60642",
-     "https://westerlychicago.com/floor-plans/", "securecafe", 188, 0),
+     "https://sightmap.com/app/api/v1/8ywkdk14plx/sightmaps/76952", "sightmap", 188, 0),
     ("hugo-river-north", "Hugo River North", "751 North Hudson Avenue, Chicago, IL 60654",
-     "https://hugorivernorth.com/floor-plans/", "securecafe", 227, 0),
+     "https://sightmap.com/app/api/v1/yzvgo8o7wln/sightmaps/39454", "sightmap", 227, 0),
     ("812-west-adams", "812 West Adams", "812 West Adams Street, Chicago, IL 60607",
      "https://812adams.net/", "custom", 80, 0),
     ("the-jax", "The Jax", "1220 West Jackson Boulevard, Chicago, IL 60607",
-     "https://thejaxchicago.com/floorplans/", "securecafe", 172, 0),
+     "https://cagan.securecafe.com/onlineleasing/1220-w-jackson-blvd/floorplans", "securecafe", 172, 0),
     ("the-ardus", "The Ardus", "676 North LaSalle Drive, Chicago, IL 60654",
-     "https://livetheardus.com/", "funnel", 149, 0),
+     "https://sightmap.com/app/api/v1/05evez1mvqo/sightmaps/18809", "sightmap", 149, 0),
     ("evo-union-park", "Evo Union Park Apartments", "1454 West Randolph Street, Chicago, IL 60607",
-     "https://evounionpark.com/floorplans/", "securecafe", 242, 0),
+     "https://sightmap.com/app/api/v1/4yjp2m79vxl/sightmaps/14346", "sightmap", 242, 0),
     ("arthurs-of-old-town", "Arthurs of Old Town", "300 West Division Street, Chicago, IL 60610",
-     "https://arthursofoldtown.com/", "appfolio", 89, 0),
+     "https://divisionllc.appfolio.com/listings", "appfolio", 89, 0),
     ("the-van-buren", "The Van Buren", "808 West Van Buren Street, Chicago, IL 60607",
      "https://thevanburenchicago.com/", "custom", 148, 0),
 ]
@@ -73,7 +73,7 @@ def migrate():
                     (slug, name, address, url, platform, unit_count_total, is_subject, active, added_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (slug, name, address, url, platform, units, is_subject,
-                  1 if platform == "rentcafe" else 0,  # only RentCafe active initially
+                  1 if platform in ("rentcafe", "sightmap", "appfolio") else 0,
                   now))
 
         # Step 3: Add property_id column to snapshots if missing
