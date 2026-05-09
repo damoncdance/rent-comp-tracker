@@ -67,11 +67,12 @@ def write_snapshot_success(
         conn.executemany(
             """INSERT INTO units
                  (snapshot_id, unit_code, floorplan_id, floorplan_name,
-                  beds, baths, sqft, min_rent, max_rent, available_date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  beds, baths, sqft, min_rent, max_rent, available_date,
+                  concession_text)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [(snapshot_id, u["UnitCode"], u["FloorplanId"], u["FloorplanName"],
               u["Beds"], u["Baths"], u["SqFt"], u["MinRent"], u["MaxRent"],
-              u["AvailableDate"]) for u in units],
+              u["AvailableDate"], u.get("ConcessionText")) for u in units],
         )
 
         # Roll units up to per-floorplan counts so we have tier-level history

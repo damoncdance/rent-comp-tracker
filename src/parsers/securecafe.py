@@ -53,6 +53,8 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
         avail_count = int(fp.get("availableCount", 0))
         avail_date = fp.get("availableDate", "")
         unit_list = fp.get("unitList", [])
+        is_special = fp.get("special", False)
+        concession_text = fp.get("specialText", "") if is_special else ""
 
         # Build normalized floorplan record
         floorplans.append({
@@ -89,6 +91,7 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
                         "MinRent": round(rent, 2),
                         "MaxRent": round(rent, 2),
                         "AvailableDate": _normalize_date(avail_date),
+                        "ConcessionText": concession_text,
                     })
             else:
                 # No unit numbers provided — synthesize one record per available unit
@@ -103,6 +106,7 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
                         "MinRent": low_price,
                         "MaxRent": high_price,
                         "AvailableDate": _normalize_date(avail_date),
+                        "ConcessionText": concession_text,
                     })
 
     return units, floorplans

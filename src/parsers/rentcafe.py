@@ -51,4 +51,9 @@ def parse_floorplans(html: str) -> list[dict]:
 
 def parse_all(html: str) -> tuple[list[dict], list[dict]]:
     """Convenience: return (units, floorplans) in one call."""
-    return parse_units(html), parse_floorplans(html)
+    units = parse_units(html)
+    # Ensure every unit dict has ConcessionText
+    for u in units:
+        if "ConcessionText" not in u:
+            u["ConcessionText"] = u.get("Specials", "") or ""
+    return units, parse_floorplans(html)

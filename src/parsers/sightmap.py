@@ -54,6 +54,8 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
         if price is None:
             continue  # skip units without pricing
 
+        specials = u.get("specials_description") or ""
+
         units.append({
             "UnitCode": unit_number,
             "FloorplanId": int(fp_id) if fp_id.isdigit() else 0,
@@ -64,6 +66,7 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
             "MinRent": float(price),
             "MaxRent": float(price),
             "AvailableDate": u.get("available_on") or "",
+            "ConcessionText": specials,
         })
 
     # Synthesize floorplan-level aggregates from units

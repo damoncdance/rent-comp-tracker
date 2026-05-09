@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS properties (
     unit_count_total INTEGER,                  -- total units in the building (for occupancy/exposure calc)
     is_subject      INTEGER NOT NULL DEFAULT 0, -- 1 for the subject property (Inspire West Town)
     active          INTEGER NOT NULL DEFAULT 1, -- 0 to skip during daily runs
-    added_at        TEXT    NOT NULL            -- ISO 8601 UTC
+    added_at        TEXT    NOT NULL,           -- ISO 8601 UTC
+    year_built      INTEGER,                   -- construction year
+    stories         INTEGER,                   -- number of stories
+    management_company TEXT                    -- property management company
 );
 
 CREATE TABLE IF NOT EXISTS snapshots (
@@ -39,6 +42,7 @@ CREATE TABLE IF NOT EXISTS units (
     min_rent        REAL,
     max_rent        REAL,
     available_date  TEXT,                       -- ISO 8601 date
+    concession_text TEXT,                      -- raw concession/special text if any
     PRIMARY KEY (snapshot_id, unit_code),
     FOREIGN KEY (snapshot_id) REFERENCES snapshots(id)
 );

@@ -77,6 +77,7 @@ def parse_all(html: str) -> tuple[list[dict], list[dict]]:
             "MinRent": rent,
             "MaxRent": rent,
             "AvailableDate": avail_date,
+            "ConcessionText": "",
         })
 
     # Synthesize floorplan aggregates

@@ -46,6 +46,8 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
         sqft = item.get("square_footage") or 0
         layout = item.get("layout") or f"{beds}BR"
         avail = item.get("date_available") or ""
+        concession = (item.get("incentives_marketing_description")
+                      or item.get("incentives") or "")
 
         # Assign floorplan ID by layout name
         if layout not in fp_map:
@@ -62,6 +64,7 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
             "MinRent": float(price),
             "MaxRent": float(price),
             "AvailableDate": avail[:10] if avail else "",
+            "ConcessionText": concession,
         })
 
     # Synthesize floorplan aggregates

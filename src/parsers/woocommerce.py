@@ -17,6 +17,9 @@ import re
 from collections import defaultdict
 from html import unescape
 
+# Strip HTML tags for clean text extraction
+_TAG_RE = re.compile(r"<[^>]+>")
+
 
 class ParseError(Exception):
     """Raised when WooCommerce product data can't be parsed."""
@@ -43,6 +46,7 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
         slug = item.get("slug", "")
         short_desc = unescape(item.get("short_description", ""))
         price_html = unescape(item.get("price_html", ""))
+        description = _TAG_RE.sub("", unescape(item.get("description", ""))).strip()
 
         # Extract unit number from slug: "unit-513" -> "513", "unit204" -> "204"
         unit_match = re.search(r"unit[- ]?(\w+)", slug, re.IGNORECASE)
@@ -102,6 +106,7 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
             "MinRent": rent,
             "MaxRent": rent,
             "AvailableDate": avail_date,
+            "ConcessionText": description if description else "",
         })
 
     # Synthesize floorplan aggregates
