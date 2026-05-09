@@ -9,42 +9,29 @@ static dashboard to GitHub Pages.
 
 ## What it tracks
 
-The end goal is a comp set anchored on **Inspire West Town** (subject) plus
-~10–12 competitor properties. The current implementation tracks one property
-— **Aberdeen Crossing** (Chicago) — as the proof-of-concept and reference
-parser. Multi-property is a planned expansion.
+The system tracks a comp set anchored on a **subject property** plus
+~10–12 competitor properties across various platforms (RentCafe, SecureCafe, AppFolio, etc.).
 
 ## What it does
 
-- Fetches each property's floorplans page once per day via GitHub Actions.
-- Extracts available units (unit number, rent, sqft, available date) and
-  floorplan tiers.
+- Fetches each property's availability once per day via GitHub Actions (using Playwright for Cloudflare-protected sites).
+- Extracts available units and floorplan tiers using platform-specific parsers.
 - Appends to `data/tracker.db` (SQLite, tracked in git for history).
-- Computes diffs vs. the previous snapshot — units added, units removed
-  (presumably leased), rent changes, available-date changes.
-- Regenerates `dashboard/index.html` and publishes to GitHub Pages.
-- Sends an email digest via Resend.
+- Computes diffs vs. the previous snapshot — units added, units removed, rent changes, etc.
+- Regenerates a multi-property dashboard at `dashboard/index.html`.
+- Sends a consolidated email digest via Resend.
+- Generates Excel comp reports and per-property availability sheets.
 
 ## How to set up your own copy
 
-See [SETUP.md](SETUP.md) for the full ~25-minute walkthrough: Resend key →
-push to GitHub → add three secrets → enable Pages → run.
+See [SETUP.md](SETUP.md) for the full ~25-minute walkthrough.
 
 ## Stack
 
-Plain Python 3.11. Single runtime dependency: `requests`. Storage: SQLite.
+Plain Python 3.11. Core dependencies: `requests`, `playwright`, `openpyxl`. Storage: SQLite.
 Dashboard: static HTML with Chart.js from CDN. Hosting: GitHub Pages. Email:
 Resend HTTP API. Scheduler: GitHub Actions cron.
 
-No web framework, no JavaScript build, no Docker, no external services
-beyond GitHub and Resend (both free at this scale).
-
-## Cost
-
-$0/month at single-property scale. Stays $0 even with 12 properties.
-
 ## Status
 
-Baseline implementation. Captures data, renders a dashboard, sends digests.
-Multi-property support, deeper analytics, and notification channels beyond
-email are deferred until the baseline runs reliably.
+Active. Multi-property support, automated pricing recommendations, and consolidated reporting are implemented.

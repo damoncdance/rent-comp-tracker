@@ -115,7 +115,7 @@ into it for details — see the troubleshooting section below.
 Three things should be true after the first successful run:
 
 **(a) Email arrived.** Check the inbox you used as `NOTIFY_TO`. Subject
-should be `Rent Comps — Aberdeen Crossing: 76 units, no changes` (or similar).
+should be `Rent Comps — X properties, no changes` (or similar).
 If it's not in your inbox, check spam. If still not there: Actions tab → run
 log → look for any line starting with `notify:`. It tells you whether the
 send succeeded, failed, or was skipped.

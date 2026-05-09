@@ -25,10 +25,17 @@ PROPERTY_URL  = "https://www.aberdeencrossingapts.com/floorplans"
 
 # --- Property registry (reads from DB) --------------------------------------
 
-def get_active_properties() -> list[dict]:
-    """Return all active properties as dicts, ordered by is_subject DESC then name."""
+def _connect() -> sqlite3.Connection:
+    """Open a read-only DB connection with row_factory and foreign_keys."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
+
+
+def get_active_properties() -> list[dict]:
+    """Return all active properties as dicts, ordered by is_subject DESC then name."""
+    conn = _connect()
     try:
         rows = conn.execute(
             "SELECT * FROM properties WHERE active = 1 "
@@ -41,8 +48,7 @@ def get_active_properties() -> list[dict]:
 
 def get_property(slug: str) -> dict | None:
     """Return a single property by slug, or None."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _connect()
     try:
         row = conn.execute(
             "SELECT * FROM properties WHERE slug = ?", (slug,)
@@ -54,8 +60,7 @@ def get_property(slug: str) -> dict | None:
 
 def get_property_by_id(property_id: int) -> dict | None:
     """Return a single property by id, or None."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _connect()
     try:
         row = conn.execute(
             "SELECT * FROM properties WHERE id = ?", (property_id,)

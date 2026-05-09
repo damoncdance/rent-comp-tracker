@@ -58,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         snap_id, ok = _run_one_property(prop, log, verbose=args.verbose)
         results.append((prop, snap_id, ok))
 
-    # Render dashboard (uses Aberdeen/first property for now — Phase 4 will make it multi-property)
+    # Render multi-property dashboard
     _safe_render(log)
 
     # Export xlsx — consolidated comp report + per-property
