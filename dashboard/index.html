@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Westerly — Availability Dashboard</title>
+<title>Inspire West Town — Rent Comp Report</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --fg:#e8e8e8; --fg-strong:#fff; --muted:#8a8f98; --bg:#0e1117; --card:#161b22;
-    --line:#30363d; --accent:#58a6ff; --accent-soft:rgba(88,166,255,0.08);
+    --line:#30363d; --accent:#7c6bf1; --accent-soft:rgba(124,107,241,0.08);
     --green:#3fb950; --red:#f85149; --yellow:#d29922;
     --mono:ui-monospace,SFMono-Regular,"Cascadia Mono",Menlo,monospace;
   }
@@ -20,32 +20,42 @@
     font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
   }
   header {
-    max-width:1200px; margin:0 auto;
+    max-width:1400px; margin:0 auto;
     padding:16px 0 0; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
   }
+  .header-left { flex:1; }
   h1 {
-    font-size:15px; font-weight:700; color:var(--fg-strong);
-    letter-spacing:-0.01em; white-space:nowrap;
+    font-size:18px; font-weight:700; color:var(--fg-strong);
+    letter-spacing:-0.01em;
   }
   .meta {
     color:var(--muted); font-size:12px; font-family:var(--mono);
-    display:flex; gap:6px; flex-wrap:wrap; align-items:baseline;
+    display:flex; gap:6px; flex-wrap:wrap; align-items:baseline; margin-top:4px;
   }
   .meta a { color:var(--accent); text-decoration:none; }
-  .meta a:hover { text-decoration:underline; }
   .meta .sep { opacity:0.35; }
+  .back-link {
+    color:var(--accent); text-decoration:none; font-size:12px;
+    font-family:var(--mono); display:inline-block; margin-bottom:4px;
+  }
+  .back-link:hover { text-decoration:underline; }
+  .subject-badge {
+    background:var(--accent); color:#fff; padding:2px 8px; border-radius:3px;
+    font-size:11px; font-weight:700; letter-spacing:0.03em;
+  }
 
   /* Tab bar */
   .tabs {
-    max-width:1200px; margin:0 auto;
+    max-width:1400px; margin:0 auto;
     display:flex; gap:0; border-bottom:1px solid var(--line);
-    padding-top:10px;
+    padding-top:10px; overflow-x:auto;
   }
   .tab {
-    padding:8px 18px; font-size:12px; font-weight:600; color:var(--muted);
+    padding:8px 16px; font-size:11px; font-weight:600; color:var(--muted);
     text-transform:uppercase; letter-spacing:.05em; cursor:pointer;
     border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0;
     background:none; font-family:inherit; position:relative; bottom:-1px;
+    white-space:nowrap;
   }
   .tab:hover { color:var(--fg); }
   .tab.active {
@@ -56,7 +66,7 @@
   .tab-panel.active { display:block; }
 
   .grid {
-    max-width:1200px; margin:12px auto 0; display:grid;
+    max-width:1400px; margin:12px auto 0; display:grid;
     grid-template-columns:repeat(12,minmax(0,1fr)); gap:10px;
   }
   .card {
@@ -71,9 +81,7 @@
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
   }
-  @media (max-width:520px) {
-    .span-3 { grid-column:span 12; }
-  }
+  @media (max-width:520px) { .span-3 { grid-column:span 12; } }
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
@@ -83,16 +91,17 @@
   }
   .stat {
     font-size:22px; font-weight:700; color:var(--fg-strong);
-    font-family:var(--mono); line-height:1.15;
-    font-variant-numeric:tabular-nums;
+    font-family:var(--mono); line-height:1.15; font-variant-numeric:tabular-nums;
   }
 
   /* Section headings */
   h2 {
-    font-size:12px; font-weight:600; color:var(--muted);
-    text-transform:uppercase; letter-spacing:.06em;
-    margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
+    font-size:13px; font-weight:600; color:var(--accent);
+    text-transform:uppercase; letter-spacing:.04em;
+    margin:0 0 6px;
   }
+  h3 { font-size:13px; font-weight:600; color:var(--fg-strong); margin:0 0 8px; }
+  .subtitle { color:var(--muted); font-size:11px; margin-bottom:10px; }
   .small {
     font-size:11px; color:var(--muted); margin-top:10px;
     font-family:var(--mono); line-height:1.4;
@@ -100,6 +109,8 @@
 
   /* Charts */
   .chart-wrap { position:relative; height:220px; width:100%; }
+  .chart-tall { height:300px; }
+  .chart-wide { height:280px; }
 
   /* Tables */
   table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
@@ -117,10 +128,33 @@
   .muted { color:var(--muted); text-align:center; padding:24px !important; font-size:12px; }
   .scroll {
     max-height:min(540px,58vh); overflow:auto;
-    border-radius:4px; border:1px solid var(--line);
-    background:var(--card);
+    border-radius:4px; border:1px solid var(--line); background:var(--card);
   }
+  .scroll-wide { max-height:none; overflow-x:auto; }
   .scroll table { margin:0; }
+
+  /* Comp table (overview) */
+  .comp-table { min-width:800px; }
+  .comp-table th { white-space:nowrap; font-size:11px; text-transform:none; letter-spacing:0; font-weight:700; min-width:100px; }
+  .comp-table td { white-space:nowrap; font-size:12px; min-width:100px; }
+  .comp-table .row-label {
+    font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;
+    letter-spacing:.04em; position:sticky; left:0; background:var(--card); z-index:2;
+    min-width:140px;
+  }
+  .comp-table thead th:first-child { position:sticky; left:0; background:var(--card); z-index:3; }
+  .subject-col { background:rgba(124,107,241,0.06) !important; }
+  .subject-row td { background:rgba(124,107,241,0.06) !important; }
+  .subject-row td:first-child { color:var(--accent); font-weight:700; }
+
+  /* Data table */
+  .data-table { min-width:600px; }
+
+  /* Comp average row */
+  .comp-avg-row td { border-top:2px solid var(--line); font-weight:600; }
+
+  /* Concession cell */
+  .concession-cell { max-width:250px; white-space:normal !important; font-size:11px; color:var(--muted); }
 
   /* Badges */
   .badge {
@@ -131,8 +165,65 @@
   .badge-add { background:rgba(63,185,80,0.15); color:var(--green); }
   .badge-remove { background:rgba(248,81,73,0.15); color:var(--red); }
   .badge-change { background:rgba(210,153,34,0.15); color:var(--yellow); }
+  .badge-subject { background:var(--accent); color:#fff; }
 
-  /* Fees-specific */
+  /* Comp cards (rent comps tab) */
+  .comp-card { }
+  .subject-card { border-color:var(--accent); border-width:2px; }
+  .comp-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
+  .comp-num {
+    background:var(--accent); color:#fff; width:24px; height:24px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; flex-shrink:0;
+  }
+  .comp-name { font-weight:700; color:var(--fg-strong); font-size:14px; }
+  .comp-addr { font-size:11px; color:var(--muted); }
+  .comp-mgmt { font-size:11px; color:var(--muted); font-style:italic; }
+  .comp-stats {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+    margin-bottom:10px; padding:8px; background:rgba(255,255,255,0.03); border-radius:4px;
+  }
+  .comp-stat { text-align:center; }
+  .comp-stat .label { display:block; font-size:9px; margin-bottom:2px; }
+  .comp-stat span:last-child { font-weight:700; font-size:13px; color:var(--fg-strong); font-family:var(--mono); }
+  .comp-bed-table { font-size:12px; }
+  .comp-bed-table th { font-size:10px; }
+  .bed-label { font-weight:600; }
+
+  /* Metric cards */
+  .metric-card { padding:0; overflow:hidden; }
+  .metric-header { padding:12px 16px 8px; }
+  .metric-header h3 { margin:0; }
+  .metric-body { padding:0 16px 12px; }
+  .metric-row {
+    display:flex; justify-content:space-between; padding:5px 0;
+    font-size:12px; border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+  }
+  .metric-row span:last-child { font-weight:600; color:var(--fg-strong); }
+
+  /* Property nav */
+  .prop-nav {
+    position:fixed; top:80px; right:clamp(8px,2vw,20px);
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:12px; width:180px; max-height:calc(100vh - 120px); overflow-y:auto;
+    z-index:10;
+  }
+  .prop-nav h3 {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.06em; margin-bottom:8px;
+  }
+  .nav-link {
+    display:block; padding:4px 8px; font-size:11px; color:var(--fg);
+    text-decoration:none; border-radius:3px; margin-bottom:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
+  .nav-link.subject { color:var(--accent); font-weight:600; }
+
+  @media (max-width:1200px) { .prop-nav { display:none; } }
+
+  /* Disclaimer */
   .disclaimer {
     color:var(--muted); font-size:11px; font-style:italic;
     line-height:1.5; font-family:var(--mono);
@@ -141,68 +232,507 @@
 </head>
 <body>
 <header>
-  <h1>Westerly</h1>
-  <div class="meta">
-    <span>snap #13</span><span class="sep">/</span>
-    <span>May 08, 2026 20:48 UTC</span><span class="sep">/</span>
-    <a href="https://sightmap.com/app/api/v1/8ywkdk14plx/sightmaps/76952" target="_blank" rel="noopener">source</a>
+  <div class="header-left">
+    <h1>Rent Comp Report</h1>
+    <div class="meta">
+      <span class="subject-badge">Inspire West Town</span>
+      <span class="sep">/</span>
+      <span>12 properties</span>
+      <span class="sep">/</span>
+      <span>May 09, 2026 17:39 UTC</span>
+    </div>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab active" data-tab="availability">Availability</button>
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="bytypes">By Unit Type</button>
+  <button class="tab" data-tab="comps">Rent Comps</button>
+  <button class="tab" data-tab="rankings">Rankings</button>
+  <button class="tab" data-tab="trends">Trends</button>
+  <button class="tab" data-tab="concessions">Concessions</button>
   <button class="tab" data-tab="fees">Fees</button>
 </div>
 
-<div id="tab-availability" class="tab-panel active">
+<!-- TAB: Overview -->
+<div id="tab-overview" class="tab-panel active">
 <div class="grid">
-  <div class="card span-3 stat-card"><div class="label">Units avail</div><div class="stat">10</div></div>
-  <div class="card span-3 stat-card"><div class="label">Avg rent</div><div class="stat">$3,192</div></div>
-  <div class="card span-3 stat-card"><div class="label">Low</div><div class="stat">$2,358</div></div>
-  <div class="card span-3 stat-card"><div class="label">High</div><div class="stat">$4,339</div></div>
-
-  <div class="card span-4">
-    <h2>Unit mix</h2>
-    <div class="chart-wrap"><canvas id="mixChart" aria-label="Unit mix chart"></canvas></div>
-  </div>
-  <div class="card span-8">
-    <h2>Availability</h2>
-    <div class="chart-wrap"><canvas id="totalChart" aria-label="Units over time chart"></canvas></div>
-    <div class="small">daily snapshots — history builds over time</div>
-  </div>
-
   <div class="card span-12">
-    <h2>Avg rent by type</h2>
-    <div class="chart-wrap"><canvas id="rentChart" aria-label="Average rent by type chart"></canvas></div>
+    <h2>Rent Comps Overview</h2>
+    <p class="subtitle">See key comp data in one place.</p>
+    <div class="scroll scroll-wide">
+      <table class="comp-table">
+<thead><tr><th class="row-label"></th><th class="subject-col">Inspire West Town</th><th>1100 W Grand Ave</th><th>812 West Adams</th><th>Arthurs of Old Town</th><th>Evo Union Park Apartments</th><th>Hugo River North</th><th>Nevele22</th><th>Seven 10 West</th><th>The Ardus</th><th>The Jax</th><th>The Van Buren</th><th>Westerly</th></tr></thead>
+<tbody><tr><td class="row-label">Management Company</td><td class="subject-col">Cagan</td><td>Cagan</td><td>Continuum Real Estate Brokers, Inc.</td><td>Turbotenant</td><td>Marquette Management</td><td>Lg Development Group</td><td>Nevele22</td><td>Luxury Living Chicago Realty</td><td>Flats</td><td>Cagan</td><td>Greystar</td><td>Bozzuto</td></tr><tr><td class="row-label">Year Built</td><td class="subject-col">2023</td><td>2026</td><td>2024</td><td>2021</td><td>2021</td><td>2023</td><td>2023</td><td>2018</td><td>2018</td><td>2020</td><td>2018</td><td>2020</td></tr><tr><td class="row-label">Stories</td><td class="subject-col">8</td><td>7</td><td>7</td><td>7</td><td>11</td><td>9</td><td>7</td><td>8</td><td>7</td><td>10</td><td>12</td><td>12</td></tr><tr><td class="row-label"># Units</td><td class="subject-col">113</td><td>99</td><td>80</td><td>89</td><td>242</td><td>227</td><td>97</td><td>105</td><td>149</td><td>172</td><td>148</td><td>188</td></tr><tr><td class="row-label">Exposure</td><td class="subject-col">17.7%</td><td>75.8%</td><td>16.2%</td><td>0.0%</td><td>7.9%</td><td>14.1%</td><td>8.2%</td><td>5.7%</td><td>4.0%</td><td>8.1%</td><td>1.4%</td><td>5.3%</td></tr><tr><td class="row-label">Available Units</td><td class="subject-col">20</td><td>75</td><td>13</td><td>0</td><td>19</td><td>32</td><td>8</td><td>6</td><td>6</td><td>14</td><td>2</td><td>10</td></tr><tr><td class="row-label">Rent</td><td class="subject-col">$3,346</td><td>$3,555</td><td>$3,610</td><td>—</td><td>$2,938</td><td>$3,132</td><td>$2,743</td><td>$2,410</td><td>$2,644</td><td>$2,575</td><td>$3,674</td><td>$3,192</td></tr><tr><td class="row-label">Avg SqFt</td><td class="subject-col">768 ft²</td><td>822 ft²</td><td>874 ft²</td><td>—</td><td>696 ft²</td><td>713 ft²</td><td>679 ft²</td><td>632 ft²</td><td>630 ft²</td><td>589 ft²</td><td>868 ft²</td><td>798 ft²</td></tr><tr><td class="row-label">Rent/ft²</td><td class="subject-col">$4.35</td><td>$4.32</td><td>$4.13</td><td>—</td><td>$4.22</td><td>$4.39</td><td>$4.04</td><td>$3.81</td><td>$4.20</td><td>$4.37</td><td>$4.23</td><td>$4.00</td></tr><tr><td class="row-label">Concessions</td><td class="subject-col">—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+</table>
+    </div>
   </div>
+</div>
 
-  <div class="card span-7">
-    <h2>Current units (10)</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">Sqft</th><th class="num">Rent</th><th>Avail</th></tr></thead>
-        <tbody><tr><td>Studio</td><td>{&quot;name&quot;:&quot;Studio-e10a&quot;,&quot;provider_id&quot;:&quot;5288516&quot;}</td><td class='mono'>0204</td><td class='num'>544</td><td class='num'>$2,358</td><td>Jul 04, 2026</td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;Studio-e10a&quot;,&quot;provider_id&quot;:&quot;5288516&quot;}</td><td class='mono'>0506</td><td class='num'>544</td><td class='num'>$2,388</td><td>May 13, 2026</td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10e&quot;,&quot;provider_id&quot;:&quot;5288103&quot;}</td><td class='mono'>0709</td><td class='num'>666</td><td class='num'>$2,760</td><td>May 23, 2026</td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10e&quot;,&quot;provider_id&quot;:&quot;5288103&quot;}</td><td class='mono'>1009</td><td class='num'>666</td><td class='num'>$2,790</td><td>May 13, 2026</td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10h&quot;,&quot;provider_id&quot;:&quot;5288106&quot;}</td><td class='mono'>1107</td><td class='num'>733</td><td class='num'>$2,884</td><td>May 08, 2026</td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10j&quot;,&quot;provider_id&quot;:&quot;5288483&quot;}</td><td class='mono'>1001</td><td class='num'>746</td><td class='num'>$2,975</td><td>Jul 04, 2026</td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10m&quot;,&quot;provider_id&quot;:&quot;5288485&quot;}</td><td class='mono'>1109</td><td class='num'>753</td><td class='num'>$3,005</td><td>Jun 07, 2026</td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20b&quot;,&quot;provider_id&quot;:&quot;5288491&quot;}</td><td class='mono'>0202</td><td class='num'>1,052</td><td class='num'>$4,124</td><td>Jun 06, 2026</td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20c&quot;,&quot;provider_id&quot;:&quot;5288492&quot;}</td><td class='mono'>1114</td><td class='num'>1,117</td><td class='num'>$4,294</td><td>Jun 25, 2026</td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20f&quot;,&quot;provider_id&quot;:&quot;5288495&quot;}</td><td class='mono'>0712</td><td class='num'>1,158</td><td class='num'>$4,339</td><td>Jul 27, 2026</td></tr></tbody>
+<div class="grid" style="margin-top:0">
+  <div class="card span-12">
+    <div class="scroll scroll-wide">
+      <table class="comp-table">
+      <thead><tr><th class="row-label" style="border-left:3px solid #58a6ff">Studio</th><th class="subject-col">Inspire West Town</th><th>1100 W Grand Ave</th><th>812 West Adams</th><th>Arthurs of Old Town</th><th>Evo Union Park Apartments</th><th>Hugo River North</th><th>Nevele22</th><th>Seven 10 West</th><th>The Ardus</th><th>The Jax</th><th>The Van Buren</th><th>Westerly</th></tr></thead>
+      <tbody><tr><td class="row-label">Available Units</td><td class="subject-col">2</td><td>25</td><td>5</td><td>—</td><td>5</td><td>7</td><td>5</td><td>2</td><td>2</td><td>6</td><td>—</td><td>2</td></tr><tr><td class="row-label">Rent</td><td class="subject-col">$2,310</td><td>$2,477</td><td>$2,595</td><td>—</td><td>$2,532</td><td>$2,226</td><td>$2,031</td><td>$2,125</td><td>$2,300</td><td>$2,197</td><td>—</td><td>$2,373</td></tr><tr><td class="row-label">Average SqFt</td><td class="subject-col">432 ft²</td><td>533 ft²</td><td>627 ft²</td><td>—</td><td>520 ft²</td><td>429 ft²</td><td>464 ft²</td><td>494 ft²</td><td>552 ft²</td><td>453 ft²</td><td>—</td><td>544 ft²</td></tr><tr><td class="row-label">Rent/ft²</td><td class="subject-col">$5.34/ft²</td><td>$4.65/ft²</td><td>$4.14/ft²</td><td>—</td><td>$4.87/ft²</td><td>$5.19/ft²</td><td>$4.37/ft²</td><td>$4.30/ft²</td><td>$4.16/ft²</td><td>$4.85/ft²</td><td>—</td><td>$4.36/ft²</td></tr></tbody>
       </table>
     </div>
   </div>
+</div>
 
-  <div class="card span-5">
-    <h2>Recent changes</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>When</th><th>Event</th><th>Unit</th><th>Detail</th></tr></thead>
-        <tbody><tr><td colspan='4' class='muted'>No changes recorded yet — need at least 2 snapshots.</td></tr></tbody>
+<div class="grid" style="margin-top:0">
+  <div class="card span-12">
+    <div class="scroll scroll-wide">
+      <table class="comp-table">
+      <thead><tr><th class="row-label" style="border-left:3px solid #3fb950">1 BR</th><th class="subject-col">Inspire West Town</th><th>1100 W Grand Ave</th><th>812 West Adams</th><th>Arthurs of Old Town</th><th>Evo Union Park Apartments</th><th>Hugo River North</th><th>Nevele22</th><th>Seven 10 West</th><th>The Ardus</th><th>The Jax</th><th>The Van Buren</th><th>Westerly</th></tr></thead>
+      <tbody><tr><td class="row-label">Available Units</td><td class="subject-col">6</td><td>10</td><td>2</td><td>—</td><td>13</td><td>20</td><td>—</td><td>4</td><td>4</td><td>8</td><td>1</td><td>5</td></tr><tr><td class="row-label">Rent</td><td class="subject-col">$2,710</td><td>$2,961</td><td>$2,795</td><td>—</td><td>$2,988</td><td>$2,917</td><td>—</td><td>$2,552</td><td>$2,816</td><td>$2,859</td><td>$2,935</td><td>$2,883</td></tr><tr><td class="row-label">Average SqFt</td><td class="subject-col">573 ft²</td><td>662 ft²</td><td>692 ft²</td><td>—</td><td>738 ft²</td><td>657 ft²</td><td>—</td><td>702 ft²</td><td>668 ft²</td><td>690 ft²</td><td>662 ft²</td><td>713 ft²</td></tr><tr><td class="row-label">Rent/ft²</td><td class="subject-col">$4.73/ft²</td><td>$4.48/ft²</td><td>$4.04/ft²</td><td>—</td><td>$4.05/ft²</td><td>$4.44/ft²</td><td>—</td><td>$3.64/ft²</td><td>$4.22/ft²</td><td>$4.14/ft²</td><td>$4.43/ft²</td><td>$4.04/ft²</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:0">
+  <div class="card span-12">
+    <div class="scroll scroll-wide">
+      <table class="comp-table">
+      <thead><tr><th class="row-label" style="border-left:3px solid #d29922">2 BR</th><th class="subject-col">Inspire West Town</th><th>1100 W Grand Ave</th><th>812 West Adams</th><th>Arthurs of Old Town</th><th>Evo Union Park Apartments</th><th>Hugo River North</th><th>Nevele22</th><th>Seven 10 West</th><th>The Ardus</th><th>The Jax</th><th>The Van Buren</th><th>Westerly</th></tr></thead>
+      <tbody><tr><td class="row-label">Available Units</td><td class="subject-col">10</td><td>30</td><td>5</td><td>—</td><td>1</td><td>3</td><td>2</td><td>—</td><td>—</td><td>—</td><td>1</td><td>3</td></tr><tr><td class="row-label">Rent</td><td class="subject-col">$3,629</td><td>$4,003</td><td>$4,495</td><td>—</td><td>$4,325</td><td>$4,228</td><td>$3,620</td><td>—</td><td>—</td><td>—</td><td>$4,413</td><td>$4,252</td></tr><tr><td class="row-label">Average SqFt</td><td class="subject-col">860 ft²</td><td>971 ft²</td><td>1,091 ft²</td><td>—</td><td>1,040 ft²</td><td>984 ft²</td><td>976 ft²</td><td>—</td><td>—</td><td>—</td><td>1,075 ft²</td><td>1,109 ft²</td></tr><tr><td class="row-label">Rent/ft²</td><td class="subject-col">$4.22/ft²</td><td>$4.12/ft²</td><td>$4.12/ft²</td><td>—</td><td>$4.16/ft²</td><td>$4.30/ft²</td><td>$3.71/ft²</td><td>—</td><td>—</td><td>—</td><td>$4.11/ft²</td><td>$3.83/ft²</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:0">
+  <div class="card span-12">
+    <div class="scroll scroll-wide">
+      <table class="comp-table">
+      <thead><tr><th class="row-label" style="border-left:3px solid #f85149">3 BR</th><th class="subject-col">Inspire West Town</th><th>1100 W Grand Ave</th><th>812 West Adams</th><th>Arthurs of Old Town</th><th>Evo Union Park Apartments</th><th>Hugo River North</th><th>Nevele22</th><th>Seven 10 West</th><th>The Ardus</th><th>The Jax</th><th>The Van Buren</th><th>Westerly</th></tr></thead>
+      <tbody><tr><td class="row-label">Available Units</td><td class="subject-col">2</td><td>10</td><td>1</td><td>—</td><td>—</td><td>2</td><td>1</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td class="row-label">Rent</td><td class="subject-col">$4,878</td><td>$5,496</td><td>$5,895</td><td>—</td><td>—</td><td>$6,800</td><td>$4,550</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td class="row-label">Average SqFt</td><td class="subject-col">1,232 ft²</td><td>1,263 ft²</td><td>1,378 ft²</td><td>—</td><td>—</td><td>1,860 ft²</td><td>1,159 ft²</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td class="row-label">Rent/ft²</td><td class="subject-col">$3.96/ft²</td><td>$4.35/ft²</td><td>$4.28/ft²</td><td>—</td><td>—</td><td>$3.66/ft²</td><td>$3.93/ft²</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
       </table>
     </div>
   </div>
 </div>
 </div>
 
+<!-- TAB: By Unit Type -->
+<div id="tab-bytypes" class="tab-panel">
+<div class="grid">
+  
+  <div class="card span-3 metric-card">
+    <div class="metric-header" style="border-top:3px solid #58a6ff">
+      <h3>Studio</h3>
+    </div>
+    <div class="metric-body">
+      <div class="metric-row"><span># Listings</span><span>61</span></div>
+      <div class="metric-row"><span>Avg SqFt</span><span>505 ft²</span></div>
+      <div class="metric-row"><span>Asking Rent / PSF</span><span>$2,317 / $4.59</span></div>
+    </div>
+  </div>
+
+  <div class="card span-3 metric-card">
+    <div class="metric-header" style="border-top:3px solid #3fb950">
+      <h3>1 BR</h3>
+    </div>
+    <div class="metric-body">
+      <div class="metric-row"><span># Listings</span><span>73</span></div>
+      <div class="metric-row"><span>Avg SqFt</span><span>676 ft²</span></div>
+      <div class="metric-row"><span>Asking Rent / PSF</span><span>$2,842 / $4.21</span></div>
+    </div>
+  </div>
+
+  <div class="card span-3 metric-card">
+    <div class="metric-header" style="border-top:3px solid #d29922">
+      <h3>2 BR</h3>
+    </div>
+    <div class="metric-body">
+      <div class="metric-row"><span># Listings</span><span>55</span></div>
+      <div class="metric-row"><span>Avg SqFt</span><span>1,013 ft²</span></div>
+      <div class="metric-row"><span>Asking Rent / PSF</span><span>$4,121 / $4.07</span></div>
+    </div>
+  </div>
+
+  <div class="card span-3 metric-card">
+    <div class="metric-header" style="border-top:3px solid #f85149">
+      <h3>3 BR</h3>
+    </div>
+    <div class="metric-body">
+      <div class="metric-row"><span># Listings</span><span>16</span></div>
+      <div class="metric-row"><span>Avg SqFt</span><span>1,378 ft²</span></div>
+      <div class="metric-row"><span>Asking Rent / PSF</span><span>$5,524 / $4.01</span></div>
+    </div>
+  </div>
+  <div class="card span-12">
+    <h2>Rents by Unit Type</h2>
+    <p class="subtitle">Track rent and availability trends by unit type.</p>
+    <div class="scroll scroll-wide">
+      <table class="data-table">
+<thead><tr>
+  <th>Property</th><th class="num"># Active</th>
+  <th class="num">Min Rent</th><th class="num">Avg Rent</th><th class="num">Max Rent</th>
+  <th class="num">Avg SqFt</th><th class="num">Avg PSF</th>
+</tr></thead>
+<tbody><tr class="subject-row"><td>Inspire West Town</td><td class="num">20</td><td class="num">$2,300</td><td class="num">$3,346</td><td class="num">$5,000</td><td class="num">768 ft²</td><td class="num">$4.35/ft²</td></tr><tr><td>1100 W Grand Ave</td><td class="num">75</td><td class="num">$2,192</td><td class="num">$3,555</td><td class="num">$6,696</td><td class="num">822 ft²</td><td class="num">$4.32/ft²</td></tr><tr><td>812 West Adams</td><td class="num">13</td><td class="num">$2,595</td><td class="num">$3,610</td><td class="num">$5,895</td><td class="num">874 ft²</td><td class="num">$4.13/ft²</td></tr><tr><td>Arthurs of Old Town</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Evo Union Park Apartments</td><td class="num">19</td><td class="num">$2,387</td><td class="num">$2,938</td><td class="num">$4,325</td><td class="num">696 ft²</td><td class="num">$4.22/ft²</td></tr><tr><td>Hugo River North</td><td class="num">32</td><td class="num">$2,095</td><td class="num">$3,132</td><td class="num">$7,300</td><td class="num">713 ft²</td><td class="num">$4.39/ft²</td></tr><tr><td>Nevele22</td><td class="num">8</td><td class="num">$1,949</td><td class="num">$2,743</td><td class="num">$4,550</td><td class="num">679 ft²</td><td class="num">$4.04/ft²</td></tr><tr><td>Seven 10 West</td><td class="num">6</td><td class="num">$2,075</td><td class="num">$2,410</td><td class="num">$2,595</td><td class="num">632 ft²</td><td class="num">$3.81/ft²</td></tr><tr><td>The Ardus</td><td class="num">6</td><td class="num">$2,125</td><td class="num">$2,644</td><td class="num">$2,881</td><td class="num">630 ft²</td><td class="num">$4.20/ft²</td></tr><tr><td>The Jax</td><td class="num">14</td><td class="num">$2,040</td><td class="num">$2,575</td><td class="num">$2,995</td><td class="num">589 ft²</td><td class="num">$4.37/ft²</td></tr><tr><td>The Van Buren</td><td class="num">2</td><td class="num">$2,935</td><td class="num">$3,674</td><td class="num">$4,413</td><td class="num">868 ft²</td><td class="num">$4.23/ft²</td></tr><tr><td>Westerly</td><td class="num">10</td><td class="num">$2,358</td><td class="num">$3,192</td><td class="num">$4,339</td><td class="num">798 ft²</td><td class="num">$4.00/ft²</td></tr><tr class="comp-avg-row"><td><strong>Comp Average</strong></td><td class="num">18</td><td class="num">$2,275</td><td class="num">$3,047</td><td class="num">$4,599</td><td class="num">730 ft²</td><td class="num">$4.17/ft²</td></tr></tbody>
+</table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TAB: Rent Comps -->
+<div id="tab-comps" class="tab-panel">
+<div class="grid">
+  <div class="card span-12">
+    <h2>Rent Comps</h2>
+    <p class="subtitle">Benchmark your property against comps.</p>
+  </div>
+  
+  <div class="card span-6 comp-card subject-card">
+    <div class="comp-header">
+      <span class="badge badge-subject">Subject</span>
+      <div>
+        <div class="comp-name">Inspire West Town</div>
+        <div class="comp-addr">670 North May Street, Chicago, IL 60642</div>
+        <div class="comp-mgmt">Cagan</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2023</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>113</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>8</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>82.3%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>17.7%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>20</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,310</td><td class="num">432</td><td class="num">$5.34</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,710</td><td class="num">573</td><td class="num">$4.73</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$3,629</td><td class="num">860</td><td class="num">$4.22</td></tr><tr><td class="bed-label">3 BR</td><td class="num">$4,878</td><td class="num">1,232</td><td class="num">$3.96</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">1</span>
+      <div>
+        <div class="comp-name">1100 W Grand Ave</div>
+        <div class="comp-addr">1100 West Grand Avenue, Chicago, IL 60642</div>
+        <div class="comp-mgmt">Cagan</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2026</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>99</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>7</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>24.2%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>75.8%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>75</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,477</td><td class="num">533</td><td class="num">$4.65</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,961</td><td class="num">662</td><td class="num">$4.48</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,003</td><td class="num">971</td><td class="num">$4.12</td></tr><tr><td class="bed-label">3 BR</td><td class="num">$5,496</td><td class="num">1,263</td><td class="num">$4.35</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">2</span>
+      <div>
+        <div class="comp-name">812 West Adams</div>
+        <div class="comp-addr">812 West Adams Street, Chicago, IL 60607</div>
+        <div class="comp-mgmt">Continuum Real Estate Brokers, Inc.</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2024</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>80</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>7</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>83.8%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>16.2%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>13</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,595</td><td class="num">627</td><td class="num">$4.14</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,795</td><td class="num">692</td><td class="num">$4.04</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,495</td><td class="num">1,091</td><td class="num">$4.12</td></tr><tr><td class="bed-label">3 BR</td><td class="num">$5,895</td><td class="num">1,378</td><td class="num">$4.28</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">3</span>
+      <div>
+        <div class="comp-name">Arthurs of Old Town</div>
+        <div class="comp-addr">300 West Division Street, Chicago, IL 60610</div>
+        <div class="comp-mgmt">Turbotenant</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2021</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>89</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>7</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>100.0%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>0.0%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>0</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td colspan="4" class="muted">No data</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">4</span>
+      <div>
+        <div class="comp-name">Evo Union Park Apartments</div>
+        <div class="comp-addr">1454 West Randolph Street, Chicago, IL 60607</div>
+        <div class="comp-mgmt">Marquette Management</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2021</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>242</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>11</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>92.1%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>7.9%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>19</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,532</td><td class="num">520</td><td class="num">$4.87</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,988</td><td class="num">738</td><td class="num">$4.05</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,325</td><td class="num">1,040</td><td class="num">$4.16</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">5</span>
+      <div>
+        <div class="comp-name">Hugo River North</div>
+        <div class="comp-addr">751 North Hudson Avenue, Chicago, IL 60654</div>
+        <div class="comp-mgmt">Lg Development Group</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2023</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>227</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>9</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>85.9%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>14.1%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>32</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,226</td><td class="num">429</td><td class="num">$5.19</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,917</td><td class="num">657</td><td class="num">$4.44</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,228</td><td class="num">984</td><td class="num">$4.30</td></tr><tr><td class="bed-label">3 BR</td><td class="num">$6,800</td><td class="num">1,860</td><td class="num">$3.66</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">6</span>
+      <div>
+        <div class="comp-name">Nevele22</div>
+        <div class="comp-addr">1122 West Chicago Avenue, Chicago, IL 60642</div>
+        <div class="comp-mgmt">Nevele22</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2023</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>97</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>7</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>91.8%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>8.2%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>8</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,031</td><td class="num">464</td><td class="num">$4.37</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$3,620</td><td class="num">976</td><td class="num">$3.71</td></tr><tr><td class="bed-label">3 BR</td><td class="num">$4,550</td><td class="num">1,159</td><td class="num">$3.93</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">7</span>
+      <div>
+        <div class="comp-name">Seven 10 West</div>
+        <div class="comp-addr">710 West Grand Avenue, Chicago, IL 60654</div>
+        <div class="comp-mgmt">Luxury Living Chicago Realty</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2018</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>105</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>8</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>94.3%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>5.7%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>6</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,125</td><td class="num">494</td><td class="num">$4.30</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,552</td><td class="num">702</td><td class="num">$3.64</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">8</span>
+      <div>
+        <div class="comp-name">The Ardus</div>
+        <div class="comp-addr">676 North LaSalle Drive, Chicago, IL 60654</div>
+        <div class="comp-mgmt">Flats</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2018</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>149</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>7</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>96.0%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>4.0%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>6</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,300</td><td class="num">552</td><td class="num">$4.16</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,816</td><td class="num">668</td><td class="num">$4.22</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">9</span>
+      <div>
+        <div class="comp-name">The Jax</div>
+        <div class="comp-addr">1220 West Jackson Boulevard, Chicago, IL 60607</div>
+        <div class="comp-mgmt">Cagan</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2020</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>172</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>10</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>91.9%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>8.1%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>14</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,197</td><td class="num">453</td><td class="num">$4.85</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,859</td><td class="num">690</td><td class="num">$4.14</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">10</span>
+      <div>
+        <div class="comp-name">The Van Buren</div>
+        <div class="comp-addr">808 West Van Buren Street, Chicago, IL 60607</div>
+        <div class="comp-mgmt">Greystar</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2018</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>148</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>12</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>98.6%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>1.4%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>2</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">1 BR</td><td class="num">$2,935</td><td class="num">662</td><td class="num">$4.43</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,413</td><td class="num">1,075</td><td class="num">$4.11</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card span-6 comp-card">
+    <div class="comp-header">
+      <span class="comp-num">11</span>
+      <div>
+        <div class="comp-name">Westerly</div>
+        <div class="comp-addr">740 North Aberdeen Street, Chicago, IL 60642</div>
+        <div class="comp-mgmt">Bozzuto</div>
+      </div>
+    </div>
+    <div class="comp-stats">
+      <div class="comp-stat"><span class="label">Built</span><span>2020</span></div>
+      <div class="comp-stat"><span class="label">Units</span><span>188</span></div>
+      <div class="comp-stat"><span class="label">Stories</span><span>12</span></div>
+      <div class="comp-stat"><span class="label">Leased</span><span>94.7%</span></div>
+      <div class="comp-stat"><span class="label">Exposure</span><span>5.3%</span></div>
+      <div class="comp-stat"><span class="label">Available</span><span>10</span></div>
+    </div>
+    <table class="comp-bed-table">
+      <thead><tr><th>Type</th><th class="num">Rent</th><th class="num">SqFt</th><th class="num">PSF</th></tr></thead>
+      <tbody><tr><td class="bed-label">Studio</td><td class="num">$2,373</td><td class="num">544</td><td class="num">$4.36</td></tr><tr><td class="bed-label">1 BR</td><td class="num">$2,883</td><td class="num">713</td><td class="num">$4.04</td></tr><tr><td class="bed-label">2 BR</td><td class="num">$4,252</td><td class="num">1,109</td><td class="num">$3.83</td></tr></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- TAB: Rankings -->
+<div id="tab-rankings" class="tab-panel">
+<div class="grid">
+  <div class="card span-12">
+    <h2>Property Rankings</h2>
+    <p class="subtitle">Compare asking rents by bedroom count across your market.</p>
+  </div>
+  <div class="card span-6"><h3>Studio</h3><div class="chart-wrap chart-tall"><canvas id="rankStudio"></canvas></div></div>
+  <div class="card span-6"><h3>1 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank1BR"></canvas></div></div>
+  <div class="card span-6"><h3>2 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank2BR"></canvas></div></div>
+  <div class="card span-6"><h3>3 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank3BR"></canvas></div></div>
+</div>
+</div>
+
+<!-- TAB: Trends -->
+<div id="tab-trends" class="tab-panel">
+<div class="grid">
+  <div class="card span-12">
+    <h2>Historical Rent Trends</h2>
+    <p class="subtitle">Average rent over time across your comp set.</p>
+    <div class="chart-wrap chart-wide"><canvas id="rentTrendChart"></canvas></div>
+  </div>
+  <div class="card span-12">
+    <h2>Historical Exposure</h2>
+    <p class="subtitle">Track the percentage of units listed for rent over time.</p>
+    <div class="chart-wrap chart-wide"><canvas id="exposureChart"></canvas></div>
+  </div>
+</div>
+</div>
+
+<!-- TAB: Concessions -->
+<div id="tab-concessions" class="tab-panel">
+<div class="grid">
+  <div class="card span-12">
+    <h2>Concessions</h2>
+    <p class="subtitle">See how your concessions stack up against the competition.</p>
+    <div class="scroll scroll-wide">
+      <table class="data-table">
+<thead><tr><th>Property</th><th>Concession</th></tr></thead>
+<tbody><tr class="subject-row"><td>Inspire West Town</td><td class="concession-cell">—</td></tr><tr><td>1100 W Grand Ave</td><td class="concession-cell">—</td></tr><tr><td>812 West Adams</td><td class="concession-cell">—</td></tr><tr><td>Arthurs of Old Town</td><td class="concession-cell">—</td></tr><tr><td>Evo Union Park Apartments</td><td class="concession-cell">—</td></tr><tr><td>Hugo River North</td><td class="concession-cell">—</td></tr><tr><td>Nevele22</td><td class="concession-cell">—</td></tr><tr><td>Seven 10 West</td><td class="concession-cell">—</td></tr><tr><td>The Ardus</td><td class="concession-cell">—</td></tr><tr><td>The Jax</td><td class="concession-cell">—</td></tr><tr><td>The Van Buren</td><td class="concession-cell">—</td></tr><tr><td>Westerly</td><td class="concession-cell">—</td></tr></tbody>
+</table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TAB: Fees -->
 <div id="tab-fees" class="tab-panel">
 <div class="grid">
-  <div class="card span-12"><p class="muted">No fee schedule configured for this property.</p></div>
+  <div class="card span-12">
+    <h2>Fees</h2>
+    <p class="subtitle">Compare your property's fees to market averages.</p>
+    <div class="scroll scroll-wide">
+      <table class="data-table">
+<thead><tr><th>Property</th><th class="num">Application Fee</th>
+<th class="num">Admin Fee</th><th class="num">Pet Rent</th>
+<th class="num">Parking</th></tr></thead>
+<tbody><tr class="subject-row"><td>Inspire West Town</td><td class="num">$60</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$250–$350/mo</td></tr><tr><td>1100 W Grand Ave</td><td class="num">$75</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr><tr><td>812 West Adams</td><td class="num">$50</td><td class="num">$500</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Arthurs of Old Town</td><td class="num">$75</td><td class="num">$600</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Evo Union Park Apartments</td><td class="num">$50</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$300/mo</td></tr><tr><td>Hugo River North</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$300/mo</td></tr><tr><td>Nevele22</td><td class="num">$50</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$335/mo</td></tr><tr><td>Seven 10 West</td><td class="num">$75</td><td class="num">$400</td><td class="num">—</td><td class="num">—</td></tr><tr><td>The Ardus</td><td class="num">$50</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$350/mo</td></tr><tr><td>The Jax</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">—</td></tr><tr><td>The Van Buren</td><td class="num">$60</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$350/mo</td></tr><tr><td>Westerly</td><td class="num">$65</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr></tbody>
+</table>
+    </div>
+  </div>
 </div>
 </div>
+
+<!-- Property Navigation -->
+<nav class="prop-nav">
+  <h3>Properties</h3>
+  <a href="inspire-west-town/" class="nav-link subject">Inspire West Town</a><a href="aberdeen-crossing/" class="nav-link">1100 W Grand Ave</a><a href="812-west-adams/" class="nav-link">812 West Adams</a><a href="arthurs-of-old-town/" class="nav-link">Arthurs of Old Town</a><a href="evo-union-park/" class="nav-link">Evo Union Park Apartments</a><a href="hugo-river-north/" class="nav-link">Hugo River North</a><a href="nevele22/" class="nav-link">Nevele22</a><a href="seven-10-west/" class="nav-link">Seven 10 West</a><a href="the-ardus/" class="nav-link">The Ardus</a><a href="the-jax/" class="nav-link">The Jax</a><a href="the-van-buren/" class="nav-link">The Van Buren</a><a href="westerly/" class="nav-link">Westerly</a>
+</nav>
 
 <script>
 /* Tab switching */
@@ -220,75 +750,97 @@ Chart.defaults.borderColor = '#30363d';
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
 
-const counts = {"Studio": 2, "1 BR": 5, "2 BR": 3};
-new Chart(document.getElementById('mixChart'), {
-  type: 'doughnut',
-  data: {
-    labels: Object.keys(counts),
-    datasets: [{ data: Object.values(counts), backgroundColor: ['#58a6ff','#3fb950','#d29922','#f85149'], borderWidth: 0 }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '58%',
-    plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } }
-    }
-  }
-});
-
-const timeline = [{"t": "2026-05-08T20:41:27.132165+00:00", "count": 10}, {"t": "2026-05-08T20:48:03.788219+00:00", "count": 10}];
-new Chart(document.getElementById('totalChart'), {
-  type: 'line',
-  data: {
-    labels: timeline.map(p => p.t.slice(0,10)),
-    datasets: [{ label: 'Available units', data: timeline.map(p => p.count),
-                  borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true,
-                  borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, pointBackgroundColor: '#58a6ff' }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { intersect: false, mode: 'index' },
-    scales: {
-      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
-      y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } }
+/* Rankings charts */
+const rankings = {"studio": {"labels": ["812 West Adams", "Evo Union Park Apart", "1100 W Grand Ave", "Westerly", "Inspire West Town", "The Ardus", "Hugo River North", "The Jax", "Seven 10 West", "Nevele22"], "values": [2595, 2532, 2477, 2373, 2310, 2300, 2226, 2197, 2125, 2031], "colors": ["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#6e7681", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"]}, "one_br": {"labels": ["Evo Union Park Apart", "1100 W Grand Ave", "The Van Buren", "Hugo River North", "Westerly", "The Jax", "The Ardus", "812 West Adams", "Inspire West Town", "Seven 10 West"], "values": [2988, 2961, 2935, 2917, 2883, 2859, 2816, 2795, 2710, 2552], "colors": ["#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#6e7681", "#3fb950"]}, "two_br": {"labels": ["812 West Adams", "The Van Buren", "Evo Union Park Apart", "Westerly", "Hugo River North", "1100 W Grand Ave", "Inspire West Town", "Nevele22"], "values": [4495, 4413, 4325, 4252, 4228, 4003, 3629, 3620], "colors": ["#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#6e7681", "#d29922"]}, "three_br": {"labels": ["Hugo River North", "812 West Adams", "1100 W Grand Ave", "Inspire West Town", "Nevele22"], "values": [6800, 5895, 5496, 4878, 4550], "colors": ["#f85149", "#f85149", "#f85149", "#6e7681", "#f85149"]}};
+function makeRankChart(canvasId, data) {
+  if (!data || data.labels.length === 0) return;
+  new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        backgroundColor: data.colors,
+        borderWidth: 0,
+        borderRadius: 3,
+        barThickness: 18,
+      }]
     },
-    plugins: { legend: { display: false } }
-  }
-});
-
-const rentSeries = [{"t": "2026-05-08T20:41:27.132165+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-08T20:48:03.788219+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}];
-new Chart(document.getElementById('rentChart'), {
-  type: 'line',
-  data: {
-    labels: rentSeries.map(p => p.t.slice(0,10)),
-    datasets: [
-      { label: 'Studio',  data: rentSeries.map(p => p.studio),   borderColor: '#58a6ff', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-      { label: '1 BR',    data: rentSeries.map(p => p.one_br),   borderColor: '#3fb950', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-      { label: '2 BR',    data: rentSeries.map(p => p.two_br),   borderColor: '#d29922', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-      { label: '3 BR',    data: rentSeries.map(p => p.three_br), borderColor: '#f85149', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { intersect: false, mode: 'index' },
-    scales: {
-      x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
-      y: {
-        ticks: {
-          callback: v => (v == null || v === '' ? '' : '$' + Number(v).toLocaleString()),
-          font: { size: 10 }
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return '$' + ctx.raw.toLocaleString(); }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } },
+          grid: { color: 'rgba(48,54,61,0.6)' }
         },
-        grid: { color: 'rgba(48,54,61,0.6)' }
+        y: {
+          ticks: { font: { size: 11 } },
+          grid: { display: false }
+        }
       }
-    },
-    plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: '#8a8f98' } }
     }
-  }
-});
+  });
+}
+makeRankChart('rankStudio', rankings.studio);
+makeRankChart('rank1BR', rankings.one_br);
+makeRankChart('rank2BR', rankings.two_br);
+makeRankChart('rank3BR', rankings.three_br);
+
+/* Rent trend chart */
+const rentTrend = {"labels": ["2026-05-07", "2026-05-08", "2026-05-09"], "datasets": [{"label": "1100 W Grand Ave", "data": [3555, null, null], "borderColor": "#58a6ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "812 West Adams", "data": [null, 3610, null], "borderColor": "#3fb950", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Evo Union Park Apartments", "data": [null, 2938, null], "borderColor": "#d29922", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Hugo River North", "data": [null, 3132, null], "borderColor": "#f85149", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Inspire West Town", "data": [null, null, 3346], "borderColor": "#bc8cff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Nevele22", "data": [null, 2743, null], "borderColor": "#f78166", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Seven 10 West", "data": [null, null, 2410], "borderColor": "#7ee787", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Ardus", "data": [null, 2644, null], "borderColor": "#79c0ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Jax", "data": [null, 2575, null], "borderColor": "#ffa657", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Van Buren", "data": [null, 3674, null], "borderColor": "#ff7b72", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Westerly", "data": [null, 3192, null], "borderColor": "#d2a8ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}]};
+if (rentTrend.datasets.length > 0) {
+  new Chart(document.getElementById('rentTrendChart'), {
+    type: 'line',
+    data: { labels: rentTrend.labels, datasets: rentTrend.datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+        y: {
+          ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } },
+          grid: { color: 'rgba(48,54,61,0.6)' }
+        }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: '#8a8f98' } }
+      }
+    }
+  });
+}
+
+/* Exposure chart */
+const exposure = {"labels": ["2026-05-07", "2026-05-08", "2026-05-09"], "datasets": [{"label": "1100 W Grand Ave", "data": [75.8, null, null], "borderColor": "#58a6ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "812 West Adams", "data": [null, 16.2, null], "borderColor": "#3fb950", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Arthurs of Old Town", "data": [null, null, 0.0], "borderColor": "#d29922", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Evo Union Park Apartments", "data": [null, 7.9, null], "borderColor": "#f85149", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Hugo River North", "data": [null, 14.1, null], "borderColor": "#bc8cff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Inspire West Town", "data": [null, null, 17.7], "borderColor": "#f78166", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Nevele22", "data": [null, 8.2, null], "borderColor": "#7ee787", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Seven 10 West", "data": [null, null, 5.7], "borderColor": "#79c0ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Ardus", "data": [null, 4.0, null], "borderColor": "#ffa657", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Jax", "data": [null, 8.1, null], "borderColor": "#ff7b72", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "The Van Buren", "data": [null, 0.0, null], "borderColor": "#d2a8ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}, {"label": "Westerly", "data": [null, 5.3, null], "borderColor": "#a5d6ff", "tension": 0.25, "borderWidth": 1.5, "pointRadius": 2, "fill": false, "spanGaps": true}]};
+if (exposure.datasets.length > 0) {
+  new Chart(document.getElementById('exposureChart'), {
+    type: 'line',
+    data: { labels: exposure.labels, datasets: exposure.datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+        y: {
+          ticks: { callback: v => v + '%', font: { size: 10 } },
+          grid: { color: 'rgba(48,54,61,0.6)' },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: '#8a8f98' } }
+      }
+    }
+  });
+}
 </script>
 </body>
 </html>

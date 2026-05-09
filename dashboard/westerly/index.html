@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Westerly — Availability Detail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --fg:#e8e8e8; --fg-strong:#fff; --muted:#8a8f98; --bg:#0e1117; --card:#161b22;
+    --line:#30363d; --accent:#7c6bf1; --accent-soft:rgba(124,107,241,0.08);
+    --green:#3fb950; --red:#f85149; --yellow:#d29922;
+    --mono:ui-monospace,SFMono-Regular,"Cascadia Mono",Menlo,monospace;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--fg); margin:0;
+    padding:0 clamp(12px,3vw,24px) 48px;
+    font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  header {
+    max-width:1400px; margin:0 auto;
+    padding:16px 0 0; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+  }
+  .header-left { flex:1; }
+  h1 {
+    font-size:18px; font-weight:700; color:var(--fg-strong);
+    letter-spacing:-0.01em;
+  }
+  .meta {
+    color:var(--muted); font-size:12px; font-family:var(--mono);
+    display:flex; gap:6px; flex-wrap:wrap; align-items:baseline; margin-top:4px;
+  }
+  .meta a { color:var(--accent); text-decoration:none; }
+  .meta .sep { opacity:0.35; }
+  .back-link {
+    color:var(--accent); text-decoration:none; font-size:12px;
+    font-family:var(--mono); display:inline-block; margin-bottom:4px;
+  }
+  .back-link:hover { text-decoration:underline; }
+  .subject-badge {
+    background:var(--accent); color:#fff; padding:2px 8px; border-radius:3px;
+    font-size:11px; font-weight:700; letter-spacing:0.03em;
+  }
+
+  /* Tab bar */
+  .tabs {
+    max-width:1400px; margin:0 auto;
+    display:flex; gap:0; border-bottom:1px solid var(--line);
+    padding-top:10px; overflow-x:auto;
+  }
+  .tab {
+    padding:8px 16px; font-size:11px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em; cursor:pointer;
+    border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0;
+    background:none; font-family:inherit; position:relative; bottom:-1px;
+    white-space:nowrap;
+  }
+  .tab:hover { color:var(--fg); }
+  .tab.active {
+    color:var(--fg-strong); background:var(--bg);
+    border-color:var(--line); border-bottom:1px solid var(--bg);
+  }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  .grid {
+    max-width:1400px; margin:12px auto 0; display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr)); gap:10px;
+  }
+  .card {
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:14px 16px;
+  }
+  .span-3 { grid-column:span 3; } .span-4 { grid-column:span 4; }
+  .span-5 { grid-column:span 5; } .span-6 { grid-column:span 6; }
+  .span-7 { grid-column:span 7; } .span-8 { grid-column:span 8; }
+  .span-12 { grid-column:span 12; }
+  @media (max-width:960px) {
+    .span-3 { grid-column:span 6; }
+    .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
+  }
+  @media (max-width:520px) { .span-3 { grid-column:span 12; } }
+
+  /* KPI stat cards */
+  .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
+  .label {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.08em; font-weight:600;
+  }
+  .stat {
+    font-size:22px; font-weight:700; color:var(--fg-strong);
+    font-family:var(--mono); line-height:1.15; font-variant-numeric:tabular-nums;
+  }
+
+  /* Section headings */
+  h2 {
+    font-size:13px; font-weight:600; color:var(--accent);
+    text-transform:uppercase; letter-spacing:.04em;
+    margin:0 0 6px;
+  }
+  h3 { font-size:13px; font-weight:600; color:var(--fg-strong); margin:0 0 8px; }
+  .subtitle { color:var(--muted); font-size:11px; margin-bottom:10px; }
+  .small {
+    font-size:11px; color:var(--muted); margin-top:10px;
+    font-family:var(--mono); line-height:1.4;
+  }
+
+  /* Charts */
+  .chart-wrap { position:relative; height:220px; width:100%; }
+  .chart-tall { height:300px; }
+  .chart-wide { height:280px; }
+
+  /* Tables */
+  table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
+  th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:hover td { background:var(--accent-soft); }
+  th {
+    background:var(--card); font-weight:600; font-size:10px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    position:sticky; top:0; z-index:1;
+  }
+  th.num { text-align:right; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-size:12px; }
+  td.note { color:var(--muted); font-size:11px; }
+  .muted { color:var(--muted); text-align:center; padding:24px !important; font-size:12px; }
+  .scroll {
+    max-height:min(540px,58vh); overflow:auto;
+    border-radius:4px; border:1px solid var(--line); background:var(--card);
+  }
+  .scroll-wide { max-height:none; overflow-x:auto; }
+  .scroll table { margin:0; }
+
+  /* Comp table (overview) */
+  .comp-table { min-width:800px; }
+  .comp-table th { white-space:nowrap; font-size:11px; text-transform:none; letter-spacing:0; font-weight:700; min-width:100px; }
+  .comp-table td { white-space:nowrap; font-size:12px; min-width:100px; }
+  .comp-table .row-label {
+    font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;
+    letter-spacing:.04em; position:sticky; left:0; background:var(--card); z-index:2;
+    min-width:140px;
+  }
+  .comp-table thead th:first-child { position:sticky; left:0; background:var(--card); z-index:3; }
+  .subject-col { background:rgba(124,107,241,0.06) !important; }
+  .subject-row td { background:rgba(124,107,241,0.06) !important; }
+  .subject-row td:first-child { color:var(--accent); font-weight:700; }
+
+  /* Data table */
+  .data-table { min-width:600px; }
+
+  /* Comp average row */
+  .comp-avg-row td { border-top:2px solid var(--line); font-weight:600; }
+
+  /* Concession cell */
+  .concession-cell { max-width:250px; white-space:normal !important; font-size:11px; color:var(--muted); }
+
+  /* Badges */
+  .badge {
+    display:inline-block; padding:2px 7px; border-radius:3px;
+    font-size:10px; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; white-space:nowrap; font-family:var(--mono);
+  }
+  .badge-add { background:rgba(63,185,80,0.15); color:var(--green); }
+  .badge-remove { background:rgba(248,81,73,0.15); color:var(--red); }
+  .badge-change { background:rgba(210,153,34,0.15); color:var(--yellow); }
+  .badge-subject { background:var(--accent); color:#fff; }
+
+  /* Comp cards (rent comps tab) */
+  .comp-card { }
+  .subject-card { border-color:var(--accent); border-width:2px; }
+  .comp-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
+  .comp-num {
+    background:var(--accent); color:#fff; width:24px; height:24px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; flex-shrink:0;
+  }
+  .comp-name { font-weight:700; color:var(--fg-strong); font-size:14px; }
+  .comp-addr { font-size:11px; color:var(--muted); }
+  .comp-mgmt { font-size:11px; color:var(--muted); font-style:italic; }
+  .comp-stats {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+    margin-bottom:10px; padding:8px; background:rgba(255,255,255,0.03); border-radius:4px;
+  }
+  .comp-stat { text-align:center; }
+  .comp-stat .label { display:block; font-size:9px; margin-bottom:2px; }
+  .comp-stat span:last-child { font-weight:700; font-size:13px; color:var(--fg-strong); font-family:var(--mono); }
+  .comp-bed-table { font-size:12px; }
+  .comp-bed-table th { font-size:10px; }
+  .bed-label { font-weight:600; }
+
+  /* Metric cards */
+  .metric-card { padding:0; overflow:hidden; }
+  .metric-header { padding:12px 16px 8px; }
+  .metric-header h3 { margin:0; }
+  .metric-body { padding:0 16px 12px; }
+  .metric-row {
+    display:flex; justify-content:space-between; padding:5px 0;
+    font-size:12px; border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+  }
+  .metric-row span:last-child { font-weight:600; color:var(--fg-strong); }
+
+  /* Property nav */
+  .prop-nav {
+    position:fixed; top:80px; right:clamp(8px,2vw,20px);
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:12px; width:180px; max-height:calc(100vh - 120px); overflow-y:auto;
+    z-index:10;
+  }
+  .prop-nav h3 {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.06em; margin-bottom:8px;
+  }
+  .nav-link {
+    display:block; padding:4px 8px; font-size:11px; color:var(--fg);
+    text-decoration:none; border-radius:3px; margin-bottom:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
+  .nav-link.subject { color:var(--accent); font-weight:600; }
+
+  @media (max-width:1200px) { .prop-nav { display:none; } }
+
+  /* Disclaimer */
+  .disclaimer {
+    color:var(--muted); font-size:11px; font-style:italic;
+    line-height:1.5; font-family:var(--mono);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <a href="../" class="back-link">&larr; Comp Set Overview</a>
+    <h1>Westerly</h1>
+    <div class="meta">
+      <span>740 North Aberdeen Street, Chicago, IL 60642</span>
+      <span class="sep">/</span>
+      <span>Bozzuto</span>
+      <span class="sep">/</span>
+      <span>Snap #13 — May 08, 2026 20:48 UTC</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="availability">Availability</button>
+  <button class="tab" data-tab="dfees">Fees</button>
+</div>
+
+<div id="tab-availability" class="tab-panel active">
+<div class="grid">
+  <div class="card span-3 stat-card"><div class="label">Units Avail</div><div class="stat">10</div></div>
+  <div class="card span-3 stat-card"><div class="label">Avg Rent</div><div class="stat">$3,192</div></div>
+  <div class="card span-3 stat-card"><div class="label">Exposure</div><div class="stat">5.3%</div></div>
+  <div class="card span-3 stat-card"><div class="label">Total Units</div><div class="stat">188</div></div>
+
+  <div class="card span-4">
+    <h2>Unit Mix</h2>
+    <div class="chart-wrap"><canvas id="mixChart"></canvas></div>
+  </div>
+  <div class="card span-8">
+    <h2>Availability Over Time</h2>
+    <div class="chart-wrap"><canvas id="totalChart"></canvas></div>
+  </div>
+
+  <div class="card span-12">
+    <h2>Avg Rent by Type</h2>
+    <div class="chart-wrap"><canvas id="rentChart"></canvas></div>
+  </div>
+
+  <div class="card span-7">
+    <h2>Current Units (10)</h2>
+    <div class="scroll">
+      <table class="data-table">
+        <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">SqFt</th><th class="num">Rent</th><th>Avail</th><th>Concession</th></tr></thead>
+        <tbody><tr><td>Studio</td><td>{&quot;name&quot;:&quot;Studio-e10a&quot;,&quot;provider_id&quot;:&quot;5288516&quot;}</td><td class='mono'>0204</td><td class='num'>544</td><td class='num'>$2,358</td><td>Jul 04, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;Studio-e10a&quot;,&quot;provider_id&quot;:&quot;5288516&quot;}</td><td class='mono'>0506</td><td class='num'>544</td><td class='num'>$2,388</td><td>May 13, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10e&quot;,&quot;provider_id&quot;:&quot;5288103&quot;}</td><td class='mono'>0709</td><td class='num'>666</td><td class='num'>$2,760</td><td>May 23, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10e&quot;,&quot;provider_id&quot;:&quot;5288103&quot;}</td><td class='mono'>1009</td><td class='num'>666</td><td class='num'>$2,790</td><td>May 13, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10h&quot;,&quot;provider_id&quot;:&quot;5288106&quot;}</td><td class='mono'>1107</td><td class='num'>733</td><td class='num'>$2,884</td><td>May 08, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10j&quot;,&quot;provider_id&quot;:&quot;5288483&quot;}</td><td class='mono'>1001</td><td class='num'>746</td><td class='num'>$2,975</td><td>Jul 04, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;1 Bed/1 Bath-a10m&quot;,&quot;provider_id&quot;:&quot;5288485&quot;}</td><td class='mono'>1109</td><td class='num'>753</td><td class='num'>$3,005</td><td>Jun 07, 2026</td><td class='concession-cell'></td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20b&quot;,&quot;provider_id&quot;:&quot;5288491&quot;}</td><td class='mono'>0202</td><td class='num'>1,052</td><td class='num'>$4,124</td><td>Jun 06, 2026</td><td class='concession-cell'></td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20c&quot;,&quot;provider_id&quot;:&quot;5288492&quot;}</td><td class='mono'>1114</td><td class='num'>1,117</td><td class='num'>$4,294</td><td>Jun 25, 2026</td><td class='concession-cell'></td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;2 Bed/2 Bath-b20f&quot;,&quot;provider_id&quot;:&quot;5288495&quot;}</td><td class='mono'>0712</td><td class='num'>1,158</td><td class='num'>$4,339</td><td>Jul 27, 2026</td><td class='concession-cell'></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card span-5">
+    <h2>Recent Changes</h2>
+    <div class="scroll">
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Event</th><th>Unit</th><th>Detail</th></tr></thead>
+        <tbody><tr><td colspan='4' class='muted'>No changes recorded yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="tab-dfees" class="tab-panel">
+<div class="grid"><div class="card span-6"><h2>Application &amp; Admin</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody><tr><td>Application fee</td><td class='num'>$65</td><td class='note'>Per applicant</td></tr><tr><td>Administration fee</td><td class='num'>$500</td><td class='note'></td></tr></tbody></table></div></div>
+<div class="card span-6"><h2>Parking</h2><div class="scroll"><table class="data-table"><thead><tr><th>Type</th><th class="num">Monthly</th></tr></thead><tbody><tr><td>Garage</td><td class='num'>$350/mo</td></tr></tbody></table></div></div>
+<div class="card span-6"><h2>Pets</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th></tr></thead><tbody><tr><td>Monthly pet rent</td><td class='num'>$35/pet</td></tr><tr><td>Pet fee</td><td class='num'>$500</td></tr></tbody></table></div></div></div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+Chart.defaults.color = '#8a8f98';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
+Chart.defaults.font.size = 11;
+
+const counts = {"Studio": 2, "1 BR": 5, "2 BR": 3};
+new Chart(document.getElementById('mixChart'), {
+  type: 'doughnut',
+  data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#58a6ff','#3fb950','#d29922','#f85149'], borderWidth: 0 }] },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } } } }
+});
+
+const timeline = [{"t": "2026-05-08T20:41:27.132165+00:00", "count": 10}, {"t": "2026-05-08T20:48:03.788219+00:00", "count": 10}];
+new Chart(document.getElementById('totalChart'), {
+  type: 'line',
+  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { display: false } } }
+});
+
+const rentSeries = [{"t": "2026-05-08T20:41:27.132165+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-08T20:48:03.788219+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}];
+new Chart(document.getElementById('rentChart'), {
+  type: 'line',
+  data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
+    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: '#58a6ff', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: '#3fb950', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: '#d29922', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: '#f85149', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+  ] },
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: '#8a8f98' } } } }
+});
+</script>
+</body>
+</html>
