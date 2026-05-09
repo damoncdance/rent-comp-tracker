@@ -240,7 +240,7 @@
       <span class="sep">/</span>
       <span>Flats</span>
       <span class="sep">/</span>
-      <span>Snap #12 — May 08, 2026 20:47 UTC</span>
+      <span>Snap #32 — May 09, 2026 19:18 UTC</span>
     </div>
   </div>
 </header>
@@ -276,7 +276,7 @@
     <div class="scroll">
       <table class="data-table">
         <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">SqFt</th><th class="num">Rent</th><th>Avail</th><th>Concession</th></tr></thead>
-        <tbody><tr><td>Studio</td><td>1N</td><td class='mono'>718</td><td class='num'>427</td><td class='num'>$2,125</td><td>Aug 05, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>A1</td><td class='mono'>205</td><td class='num'>678</td><td class='num'>$2,475</td><td>May 14, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C1</td><td class='mono'>714</td><td class='num'>655</td><td class='num'>$2,850</td><td>May 08, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C4</td><td class='mono'>604</td><td class='num'>718</td><td class='num'>$2,881</td><td>May 08, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C4</td><td class='mono'>716</td><td class='num'>670</td><td class='num'>$2,879</td><td>May 08, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C8</td><td class='mono'>615</td><td class='num'>629</td><td class='num'>$2,655</td><td>May 08, 2026</td><td class='concession-cell'></td></tr></tbody>
+        <tbody><tr><td>Studio</td><td>1N</td><td class='mono'>718</td><td class='num'>427</td><td class='num'>$2,125</td><td>Aug 05, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>A1</td><td class='mono'>205</td><td class='num'>678</td><td class='num'>$2,475</td><td>May 14, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C1</td><td class='mono'>714</td><td class='num'>655</td><td class='num'>$2,850</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C4</td><td class='mono'>604</td><td class='num'>718</td><td class='num'>$2,881</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C4</td><td class='mono'>716</td><td class='num'>670</td><td class='num'>$2,879</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>C8</td><td class='mono'>615</td><td class='num'>629</td><td class='num'>$2,655</td><td>May 09, 2026</td><td class='concession-cell'></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -286,7 +286,7 @@
     <div class="scroll">
       <table class="data-table">
         <thead><tr><th>When</th><th>Event</th><th>Unit</th><th>Detail</th></tr></thead>
-        <tbody><tr><td colspan='4' class='muted'>No changes recorded yet.</td></tr></tbody>
+        <tbody><tr><td>May 09, 2026 19:18 UTC</td><td><span class='badge badge-change'>date</span></td><td class='mono'>716</td><td>2026-05-08 → 2026-05-09</td></tr><tr><td>May 09, 2026 19:18 UTC</td><td><span class='badge badge-change'>date</span></td><td class='mono'>714</td><td>2026-05-08 → 2026-05-09</td></tr><tr><td>May 09, 2026 19:18 UTC</td><td><span class='badge badge-change'>date</span></td><td class='mono'>615</td><td>2026-05-08 → 2026-05-09</td></tr><tr><td>May 09, 2026 19:18 UTC</td><td><span class='badge badge-change'>date</span></td><td class='mono'>604</td><td>2026-05-08 → 2026-05-09</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -321,14 +321,14 @@ new Chart(document.getElementById('mixChart'), {
   options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } } } }
 });
 
-const timeline = [{"t": "2026-05-08T20:47:58.401986+00:00", "count": 6}];
+const timeline = [{"t": "2026-05-08T20:47:58.401986+00:00", "count": 6}, {"t": "2026-05-09T19:18:35.736249+00:00", "count": 6}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
   data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
   options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { display: false } } }
 });
 
-const rentSeries = [{"t": "2026-05-08T20:47:58.401986+00:00", "studio": 2300.0, "one_br": 2816.25, "two_br": null, "three_br": null}];
+const rentSeries = [{"t": "2026-05-08T20:47:58.401986+00:00", "studio": 2300.0, "one_br": 2816.25, "two_br": null, "three_br": null}, {"t": "2026-05-09T19:18:35.736249+00:00", "studio": 2300.0, "one_br": 2816.25, "two_br": null, "three_br": null}];
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
