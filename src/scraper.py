@@ -165,6 +165,83 @@ def fetch_securecafe(
         raise FetchError(f"Playwright fetch failed: {e}")
 
 
+def fetch_rentcafe_optimized(
+    url: str,
+    slug: str = "unknown",
+    save_raw: bool = True,
+    verbose: bool = False,
+) -> tuple[str, int]:
+    """Fetch a Cloudflare-protected RentCafe 'optimized' page via Playwright.
+
+    These sites don't have ysi.unitsList — data lives in setGA4Cookie calls
+    embedded in the static HTML. We just need to get past Cloudflare and
+    return the page source.
+
+    Returns (html, 200).
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise FetchError(
+            "playwright is not installed — required for Cloudflare-protected sites. "
+            "Run: pip install playwright && python -m playwright install chromium"
+        )
+
+    if verbose:
+        print(f"  Playwright fetch (rentcafe_optimized): {url}")
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=False,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--window-size=1920,1080",
+                ],
+            )
+            context = browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                user_agent=(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/136.0.0.0 Safari/537.36"
+                ),
+            )
+            page = context.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+
+            # Wait for Cloudflare challenge to resolve
+            for i in range(20):
+                time.sleep(2)
+                title = page.title()
+                if verbose:
+                    print(f"    waiting ({(i+1)*2}s) — title: {title}")
+                if "moment" not in title.lower() and "challenge" not in title.lower():
+                    # Give the page a bit more time to fully render
+                    time.sleep(3)
+                    break
+
+            html = page.content()
+            browser.close()
+
+        if not html or len(html) < 500:
+            raise FetchError("Page content too short — Cloudflare may not have resolved")
+
+        # Verify we got GA4 data
+        if "setGA4Cookie" not in html:
+            raise FetchError("setGA4Cookie not found in page — site format may have changed")
+
+        if save_raw:
+            _write_raw(html, slug)
+
+        return html, 200
+
+    except FetchError:
+        raise
+    except Exception as e:
+        raise FetchError(f"Playwright fetch failed: {e}")
+
+
 def _write_raw(html: str, slug: str) -> Path:
     """Save HTML under data/raw/<slug>/YYYY-MM-DD.html."""
     if not re.match(r'^[a-z0-9][a-z0-9-]*$', slug):

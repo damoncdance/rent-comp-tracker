@@ -20,7 +20,7 @@ PROPERTIES = [
     ("aberdeen-crossing", "1100 W Grand Ave", "1100 West Grand Avenue, Chicago, IL 60642",
      "https://www.aberdeencrossingapts.com/floorplans", "rentcafe", 99, 0),
     ("inspire-west-town", "Inspire West Town", "670 North May Street, Chicago, IL 60642",
-     "https://www.iwtchicago.com/floorplans", "rentcafe", 113, 1),
+     "https://www.iwtchicago.com/floorplans", "rentcafe_optimized", 113, 1),
     ("nevele22", "Nevele22", "1122 West Chicago Avenue, Chicago, IL 60642",
      "https://lipeproperty.appfolio.com/listings", "appfolio", 97, 0),
     ("seven-10-west", "Seven 10 West", "710 West Grand Avenue, Chicago, IL 60654",

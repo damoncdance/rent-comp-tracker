@@ -23,7 +23,7 @@ from src.dashboard import render
 from src.export_xlsx import export as export_xlsx
 from src.notify import send_digest
 from src.parsers import get_parser, UnsupportedPlatformError
-from src.scraper import fetch_html, fetch_securecafe, FetchError
+from src.scraper import fetch_html, fetch_securecafe, fetch_rentcafe_optimized, FetchError
 from src.storage import (
     write_snapshot_failure, write_snapshot_success,
     write_change_events, previous_snapshot_id,
@@ -95,10 +95,12 @@ def _run_one_property(prop: dict, log, verbose: bool = False) -> tuple[int | Non
         snap_id = write_snapshot_failure(prop_id, reason=f"no_parser:{platform}")
         return snap_id, False
 
-    # Fetch — SecureCafe needs Playwright to bypass Cloudflare
+    # Fetch — SecureCafe and RentCafe optimized need Playwright for Cloudflare
     try:
         if platform == "securecafe":
             html, http_status = fetch_securecafe(url=url, slug=slug, verbose=verbose)
+        elif platform == "rentcafe_optimized":
+            html, http_status = fetch_rentcafe_optimized(url=url, slug=slug, verbose=verbose)
         else:
             html, http_status = fetch_html(url=url, slug=slug, verbose=verbose)
         log(f"  Fetched {len(html):,} bytes (HTTP {http_status})")

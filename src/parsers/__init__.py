@@ -37,10 +37,13 @@ def get_parser(platform: str) -> ModuleType:
     if platform == "securecafe":
         from src.parsers import securecafe
         return securecafe
+    if platform == "rentcafe_optimized":
+        from src.parsers import rentcafe_optimized
+        return rentcafe_optimized
     if platform == "woocommerce":
         from src.parsers import woocommerce
         return woocommerce
     raise UnsupportedPlatformError(
         f"No parser for platform '{platform}'. "
-        f"Supported: rentcafe, sightmap, appfolio, nestio, securecafe, woocommerce"
+        f"Supported: rentcafe, rentcafe_optimized, sightmap, appfolio, nestio, securecafe, woocommerce"
     )
