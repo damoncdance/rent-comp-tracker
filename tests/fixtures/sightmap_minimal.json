@@ -1,0 +1,38 @@
+{
+  "data": {
+    "units": [
+      {
+        "id": 1,
+        "unit_number": "301",
+        "floor_plan_id": 100,
+        "price": 1800.0,
+        "area": 550,
+        "available_on": "2026-06-01",
+        "specials_description": ""
+      },
+      {
+        "id": 2,
+        "unit_number": "402",
+        "floor_plan_id": 200,
+        "price": 2500.0,
+        "area": 850,
+        "available_on": "2026-07-01",
+        "specials_description": "$500 off first month"
+      }
+    ],
+    "floor_plans": [
+      {
+        "id": 100,
+        "name": "Studio",
+        "bedroom_count": 0,
+        "bathroom_count": 1.0
+      },
+      {
+        "id": 200,
+        "name": "1BR Deluxe",
+        "bedroom_count": 1,
+        "bathroom_count": 1.0
+      }
+    ]
+  }
+}
