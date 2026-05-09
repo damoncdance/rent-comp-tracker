@@ -18,6 +18,7 @@ from pathlib import Path
 from src.config import DASHBOARD_DIR, get_active_properties
 from src.fees import FEES
 from src.ner import calculate_ner
+from src.pricing import generate_recommendations, signal_label, signal_color
 from src.storage import (
     db, comp_grid_data, rents_by_unit_type,
     exposure_history, rent_history_by_property,
@@ -79,6 +80,7 @@ def _render_overview() -> Path:
     rent_trend_json = _build_rent_trend_chart_data(rent_hist)
     concessions_table = _build_concessions_table(grid)
     fees_table = _build_fees_comparison_table(grid)
+    pricing_html = _build_pricing_tab()
 
     # Property nav links for sidebar
     nav_links = "".join(
@@ -118,6 +120,7 @@ def _render_overview() -> Path:
   <button class="tab" data-tab="trends">Trends</button>
   <button class="tab" data-tab="concessions">Concessions</button>
   <button class="tab" data-tab="fees">Fees</button>
+  <button class="tab" data-tab="pricing">Pricing</button>
 </div>
 
 <!-- TAB: Overview -->
@@ -213,6 +216,11 @@ def _render_overview() -> Path:
     </div>
   </div>
 </div>
+</div>
+
+<!-- TAB: Pricing -->
+<div id="tab-pricing" class="tab-panel">
+{pricing_html}
 </div>
 
 <!-- Property Navigation -->
@@ -876,6 +884,137 @@ def _build_fees_comparison_table(grid: list[dict]) -> str:
 <th class="num">Parking</th></tr></thead>
 <tbody>{rows}</tbody>
 </table>"""
+
+
+# ===========================================================================
+# PRICING RECOMMENDATIONS TAB
+# ===========================================================================
+
+def _build_pricing_tab() -> str:
+    """Build the Pricing tab content with recommendations for the subject property."""
+    report = generate_recommendations()
+    if report is None:
+        return ('<div class="grid"><div class="card span-12">'
+                '<p class="muted">No pricing data available. Need subject + comp snapshots.</p>'
+                '</div></div>')
+
+    s = report.summary
+
+    # Signal badge helper
+    def _signal_badge(sig: str) -> str:
+        color = signal_color(sig)
+        label = signal_label(sig)
+        return (f'<span style="color:{color};font-weight:600;'
+                f'font-size:11px;">{_e(label)}</span>')
+
+    # Revenue impact color
+    impact = s["monthly_revenue_impact"]
+    impact_color = "var(--green)" if impact >= 0 else "var(--red)"
+    impact_sign = "+" if impact >= 0 else ""
+
+    # Summary cards
+    cards_html = f"""
+<div class="grid">
+  <div class="card span-3 stat-card">
+    <div class="label">Quality Score</div>
+    <div class="stat">{s['subject_quality_score']}<span style="font-size:13px;color:var(--muted);font-weight:400;"> / 10</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;">Comp avg: {s['comp_avg_quality_score']}</div>
+  </div>
+  <div class="card span-3 stat-card">
+    <div class="label">Exposure</div>
+    <div class="stat">{s['subject_exposure']}%</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;">Comp avg: {s['comp_avg_exposure']}%</div>
+  </div>
+  <div class="card span-3 stat-card">
+    <div class="label">Revenue Impact</div>
+    <div class="stat" style="color:{impact_color};">{impact_sign}${abs(impact):,}<span style="font-size:13px;font-weight:400;">/mo</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;">If all units at recommended</div>
+  </div>
+  <div class="card span-3 stat-card">
+    <div class="label">Pricing Signals</div>
+    <div style="font-size:13px;margin-top:4px;font-family:var(--mono);">
+      <span style="color:var(--red);">{s['overpriced_count']}</span> over
+      <span style="margin:0 4px;opacity:0.3;">|</span>
+      <span style="color:var(--muted);">{s['market_count']}</span> market
+      <span style="margin:0 4px;opacity:0.3;">|</span>
+      <span style="color:var(--green);">{s['underpriced_count']}</span> under
+    </div>
+  </div>
+"""
+
+    # Market PSF cards
+    psf_cards = ""
+    for beds in sorted(report.market_psf_by_bed.keys()):
+        label = _BED_LABELS.get(beds, f"{beds} BR")
+        color = _BED_COLORS.get(beds, '#58a6ff')
+        psf = report.market_psf_by_bed[beds]
+        psf_cards += (
+            f'<div class="card span-3 metric-card">'
+            f'<div class="metric-header" style="border-top:3px solid {color}"><h3>{label} Market PSF</h3></div>'
+            f'<div class="metric-body">'
+            f'<div class="metric-row"><span>Market PSF</span><span>${psf:.2f}/ft²</span></div>'
+            f'</div></div>'
+        )
+    cards_html += psf_cards
+
+    # Recommendation table
+    rows = ""
+    for u in report.units:
+        delta_color = "var(--green)" if u.delta > 0 else "var(--red)" if u.delta < 0 else "var(--muted)"
+        delta_sign = "+" if u.delta >= 0 else ""
+        beds_label = "S" if u.beds == 0 else f"{u.beds}BR"
+
+        rows += (
+            f'<tr>'
+            f'<td class="mono">{_e(u.unit_code)}</td>'
+            f'<td>{_e(u.floorplan_name)}</td>'
+            f'<td class="num">{beds_label}</td>'
+            f'<td class="num">{int(u.sqft):,}</td>'
+            f'<td class="num">${u.listed_rent:,.0f}</td>'
+            f'<td class="num" style="font-weight:700;">${u.recommended_rent:,.0f}</td>'
+            f'<td class="num">${u.aggressive_rent:,.0f}</td>'
+            f'<td class="num">${u.conservative_rent:,.0f}</td>'
+            f'<td class="num" style="color:{delta_color};">{delta_sign}${abs(u.delta):,.0f}</td>'
+            f'<td class="num" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
+            f'<td>{_signal_badge(u.signal)}</td>'
+            f'<td class="num">${u.unit_psf:.2f}</td>'
+            f'<td class="num">${u.recommended_psf:.2f}</td>'
+            f'</tr>'
+        )
+
+    table_html = f"""
+  <div class="card span-12">
+    <h2>Pricing Recommendations — {_e(report.subject_name)}</h2>
+    <p class="subtitle">{report.comp_count} comps analyzed &middot; Generated {_fmt_dt(report.generated_at)}</p>
+    <div class="scroll scroll-wide">
+      <table class="data-table" style="min-width:1100px;">
+        <thead><tr>
+          <th>Unit</th><th>Floorplan</th><th class="num">Type</th><th class="num">SqFt</th>
+          <th class="num">Listed</th><th class="num">Recommended</th>
+          <th class="num">Aggressive</th><th class="num">Conservative</th>
+          <th class="num">Delta</th><th class="num">Delta %</th><th>Signal</th>
+          <th class="num">Listed PSF</th><th class="num">Rec PSF</th>
+        </tr></thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>
+  </div>
+"""
+
+    # Summary row
+    summary_html = f"""
+  <div class="card span-12">
+    <h2>Summary</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;font-family:var(--mono);font-size:12px;">
+      <div><span style="color:var(--muted);">Avg Listed:</span> <strong>${s['avg_listed']:,}</strong></div>
+      <div><span style="color:var(--muted);">Avg Recommended:</span> <strong>${s['avg_recommended']:,}</strong></div>
+      <div><span style="color:var(--muted);">Avg Delta:</span> <strong style="color:{delta_color};">{impact_sign}${abs(s['avg_delta']):,}</strong></div>
+      <div><span style="color:var(--muted);">Avg Delta %:</span> <strong style="color:{delta_color};">{s['avg_delta_pct']*100:+.1f}%</strong></div>
+    </div>
+  </div>
+"""
+
+    return cards_html + table_html + summary_html + "</div>"
 
 
 # ===========================================================================

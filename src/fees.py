@@ -159,4 +159,33 @@ FEES: dict[str, dict] = {
             "Contact the leasing office for the most current information."
         ),
     },
+    "Spoke Apartments": {
+        "application": [
+            {"item": "Application fee", "cost": "$50", "note": "Per applicant"},
+            {"item": "Administration fee", "cost": "$400", "note": "Due at lease signing"},
+        ],
+        "parking": [
+            {"type": "Garage", "cost": "$250/mo"},
+            {"type": "Tandem", "cost": "$350/mo"},
+        ],
+        "pets": [
+            {"item": "Pet deposit", "cost": "$500", "note": "Refundable"},
+            {"item": "Monthly pet rent", "cost": "$50/pet"},
+        ],
+        "pet_policy": "Max 2 pets. Breed restrictions apply.",
+    },
+    "Avenir": {
+        "application": [
+            {"item": "Application fee", "cost": "$50", "note": "Per applicant"},
+            {"item": "Administration fee", "cost": "$350", "note": "Due at lease signing"},
+        ],
+        "parking": [
+            {"type": "Garage", "cost": "$200–$300/mo"},
+        ],
+        "pets": [
+            {"item": "Pet deposit", "cost": "$400", "note": "Refundable"},
+            {"item": "Monthly pet rent", "cost": "$40/pet"},
+        ],
+        "pet_policy": "Max 2 pets. Weight and breed restrictions apply.",
+    },
 }

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from src.config import DB_PATH
 
 
-# All 12 properties from the HelloData comp report (May 2026).
+# All 14 properties from the HelloData comp report (May 2026).
 # Aberdeen Crossing (1100 W Grand Ave) is already tracked; it gets id=1.
 PROPERTIES = [
     # (slug, name, address, url, platform, unit_count_total, is_subject)
@@ -41,6 +41,10 @@ PROPERTIES = [
      "https://divisionllc.appfolio.com/listings", "appfolio", 89, 0),
     ("the-van-buren", "The Van Buren", "808 West Van Buren Street, Chicago, IL 60607",
      "https://www.thevanburen.com/floorplans.aspx", "securecafe", 148, 0),
+    ("spoke-apartments", "Spoke Apartments", "728 N Morgan St, Chicago, IL 60642",
+     "https://sightmap.com/app/api/v1/rkwnl29nvd2/sightmaps/89339", "sightmap", 363, 0),
+    ("avenir-apartments", "Avenir", "730 N Milwaukee Ave, Chicago, IL 60642",
+     "https://www.avenirchicago.com/floorplans", "securecafe", 187, 0),
 ]
 
 

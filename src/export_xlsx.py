@@ -382,6 +382,9 @@ def export_comp_report(snapshot_ids: dict[int, int | None] | None = None) -> str
     # -- Sheet 4: Fees --
     _build_fees_sheet(wb, prop_data, date_str)
 
+    # -- Sheet 5: Pricing Recommendations --
+    _build_pricing_sheet(wb, date_str)
+
     # -- Per-property detail sheets --
     for d in prop_data:
         if d["units"]:
@@ -720,6 +723,122 @@ def _build_fees_sheet(wb: Workbook, prop_data: list[dict], date_str: str) -> Non
     ws.column_dimensions["E"].width = 24
     ws.column_dimensions["F"].width = 10
     ws.freeze_panes = "B5"
+
+
+_OVER_FILL = PatternFill(start_color="FFFFF0E0", end_color="FFFFF0E0", fill_type="solid")
+_UNDER_FILL = PatternFill(start_color="FFE0FFE0", end_color="FFE0FFE0", fill_type="solid")
+_WELL_ABOVE_FILL = PatternFill(start_color="FFFFE0E0", end_color="FFFFE0E0", fill_type="solid")
+
+_SIGNAL_FILLS = {
+    "overpriced": _OVER_FILL,
+    "well_above": _WELL_ABOVE_FILL,
+    "underpriced": _UNDER_FILL,
+}
+
+
+def _build_pricing_sheet(wb: Workbook, date_str: str) -> None:
+    """Sheet 5: Pricing recommendations for the subject property."""
+    from src.pricing import generate_recommendations, signal_label
+
+    report = generate_recommendations()
+    if report is None:
+        return
+
+    ws = wb.create_sheet("Pricing Recommendations")
+
+    ws.merge_cells("A1:M1")
+    ws["A1"].value = f"Pricing Recommendations — {report.subject_name}"
+    ws["A1"].font = _TITLE_FONT
+
+    s = report.summary
+    impact_sign = "+" if s["monthly_revenue_impact"] >= 0 else ""
+    ws.merge_cells("A2:M2")
+    ws["A2"].value = (
+        f"Quality: {s['subject_quality_score']}/10 (comp avg {s['comp_avg_quality_score']})  |  "
+        f"Exposure: {s['subject_exposure']}% (comp avg {s['comp_avg_exposure']}%)  |  "
+        f"Revenue Impact: {impact_sign}${s['monthly_revenue_impact']:,}/mo  |  "
+        f"{report.comp_count} comps  |  {date_str}"
+    )
+    ws["A2"].font = _SUB_FONT
+
+    headers = [
+        "Unit", "Floorplan", "Type", "SqFt", "Listed Rent",
+        "Recommended", "Aggressive", "Conservative",
+        "Delta ($)", "Delta (%)", "Signal",
+        "Listed PSF", "Rec PSF",
+    ]
+    _apply_header_row(ws, 4, headers)
+
+    bed_label = lambda b: "Studio" if b == 0 else f"{b}BR"
+
+    for i, u in enumerate(report.units, 5):
+        ws.cell(row=i, column=1, value=u.unit_code)
+        ws.cell(row=i, column=2, value=u.floorplan_name)
+        ws.cell(row=i, column=3, value=bed_label(u.beds))
+        c = ws.cell(row=i, column=4, value=int(u.sqft))
+        c.number_format = _NUM_FMT
+        c = ws.cell(row=i, column=5, value=int(u.listed_rent))
+        c.number_format = _MONEY_FMT
+        c = ws.cell(row=i, column=6, value=int(u.recommended_rent))
+        c.number_format = _MONEY_FMT
+        c.font = Font(bold=True, size=11)
+        c = ws.cell(row=i, column=7, value=int(u.aggressive_rent))
+        c.number_format = _MONEY_FMT
+        c = ws.cell(row=i, column=8, value=int(u.conservative_rent))
+        c.number_format = _MONEY_FMT
+        c = ws.cell(row=i, column=9, value=int(u.delta))
+        c.number_format = _MONEY_FMT
+        c = ws.cell(row=i, column=10, value=u.delta_pct)
+        c.number_format = _PCT_FMT
+        ws.cell(row=i, column=11, value=signal_label(u.signal))
+        c = ws.cell(row=i, column=12, value=u.unit_psf)
+        c.number_format = _PSF_FMT
+        c = ws.cell(row=i, column=13, value=u.recommended_psf)
+        c.number_format = _PSF_FMT
+
+        # Color-code signal rows
+        fill = _SIGNAL_FILLS.get(u.signal)
+        if fill:
+            for col in range(1, 14):
+                ws.cell(row=i, column=col).fill = fill
+
+    # Summary row
+    summary_row = 5 + len(report.units) + 1
+    ws.cell(row=summary_row, column=1, value="SUMMARY")
+    ws.cell(row=summary_row, column=1).font = _AVG_FONT
+    c = ws.cell(row=summary_row, column=5, value=s["avg_listed"])
+    c.number_format = _MONEY_FMT
+    c.font = _AVG_FONT
+    c = ws.cell(row=summary_row, column=6, value=s["avg_recommended"])
+    c.number_format = _MONEY_FMT
+    c.font = _AVG_FONT
+    c = ws.cell(row=summary_row, column=9, value=s["avg_delta"])
+    c.number_format = _MONEY_FMT
+    c.font = _AVG_FONT
+    c = ws.cell(row=summary_row, column=10, value=s["avg_delta_pct"])
+    c.number_format = _PCT_FMT
+    c.font = _AVG_FONT
+    ws.cell(row=summary_row, column=11,
+            value=f"{s['overpriced_count']} over / {s['market_count']} market / {s['underpriced_count']} under")
+    ws.cell(row=summary_row, column=11).font = _AVG_FONT
+
+    for col in range(1, 14):
+        ws.cell(row=summary_row, column=col).fill = _AVG_FILL
+
+    ws.column_dimensions["A"].width = 24
+    ws.column_dimensions["B"].width = 32
+    ws.column_dimensions["C"].width = 8
+    ws.column_dimensions["D"].width = 8
+    ws.column_dimensions["E"].width = 13
+    ws.column_dimensions["F"].width = 14
+    ws.column_dimensions["G"].width = 13
+    ws.column_dimensions["H"].width = 14
+    ws.column_dimensions["I"].width = 12
+    ws.column_dimensions["J"].width = 10
+    ws.column_dimensions["K"].width = 16
+    ws.column_dimensions["L"].width = 12
+    ws.column_dimensions["M"].width = 12
+    ws.freeze_panes = "A5"
 
 
 def _build_property_sheet(wb: Workbook, d: dict) -> None:

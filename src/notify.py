@@ -330,6 +330,9 @@ def _build_multi_digest(prop_results: list[dict]) -> tuple[str, str, str]:
     else:
         subject = f"Rent Comps — {successes}/{total_props} OK, {total_units} units, {total_changes} changes"
 
+    # Pricing insights
+    pricing_text, pricing_html = _build_pricing_section()
+
     # --- TEXT ---
     text = [
         "Rent Comp Tracker — Daily Digest",
@@ -365,11 +368,15 @@ def _build_multi_digest(prop_results: list[dict]) -> tuple[str, str, str]:
             text.extend(_text_change_lines(r["events"]))
             text.append("")
 
+    if pricing_text:
+        text.extend(pricing_text)
+        text.append("")
+
     text.append(f"Dashboard: {_dashboard_url()}")
     text_body = "\n".join(text)
 
     # --- HTML ---
-    html_body = _html_multi_template(prop_results, subject)
+    html_body = _html_multi_template(prop_results, subject, pricing_html)
 
     return subject, text_body, html_body
 
@@ -526,9 +533,115 @@ def _text_change_lines(events):
     return lines
 
 
+# --- Pricing insights -------------------------------------------------------
+
+def _build_pricing_section() -> tuple[list[str], str]:
+    """Build pricing insight text lines and HTML for the email digest.
+
+    Returns (text_lines, html_str). Both empty if no pricing data.
+    """
+    try:
+        from src.pricing import generate_recommendations, signal_label
+        report = generate_recommendations()
+    except Exception:
+        return [], ""
+
+    if report is None or not report.units:
+        return [], ""
+
+    s = report.summary
+    impact = s["monthly_revenue_impact"]
+    impact_sign = "+" if impact >= 0 else ""
+
+    # Text version
+    text = [
+        "PRICING INSIGHTS",
+        "-" * 50,
+        f"  Subject: {report.subject_name} (Quality: {s['subject_quality_score']}/10)",
+        f"  {s['overpriced_count']} overpriced, {s['market_count']} at market, {s['underpriced_count']} underpriced",
+        f"  Avg Listed: ${s['avg_listed']:,}  |  Avg Recommended: ${s['avg_recommended']:,}",
+        f"  Revenue impact: {impact_sign}${abs(impact):,}/mo",
+        "",
+        "  Top opportunities:",
+    ]
+
+    # Top 3 largest absolute deltas
+    sorted_units = sorted(report.units, key=lambda u: abs(u.delta), reverse=True)[:3]
+    for u in sorted_units:
+        d_sign = "+" if u.delta >= 0 else ""
+        text.append(
+            f"    {u.unit_code} ({u.beds}BR, {int(u.sqft)} sf): "
+            f"listed ${u.listed_rent:,.0f} → rec ${u.recommended_rent:,.0f} "
+            f"({d_sign}${u.delta:,.0f}) — {signal_label(u.signal)}"
+        )
+    text.append("")
+
+    # HTML version
+    signal_colors = {
+        "underpriced": "#1a7f37", "market": "#666",
+        "overpriced": "#9a6700", "well_above": "#cf222e",
+    }
+
+    opp_rows = ""
+    for u in sorted_units:
+        d_sign = "+" if u.delta >= 0 else ""
+        sig_color = signal_colors.get(u.signal, "#666")
+        opp_rows += (
+            f'<tr>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:12px;">{_e(u.unit_code)}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;">{u.beds}BR / {int(u.sqft)} sf</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;">${u.listed_rent:,.0f}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;font-weight:600;">${u.recommended_rent:,.0f}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;">{d_sign}${u.delta:,.0f}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;color:{sig_color};font-weight:600;">{_e(signal_label(u.signal))}</td>'
+            f'</tr>'
+        )
+
+    impact_color = "#1a7f37" if impact >= 0 else "#cf222e"
+
+    html = f"""<tr><td style="padding:0 28px 24px 28px;">
+      <h3 style="margin:16px 0 8px 0;font-size:14px;color:#1a1a1a;">Pricing Insights</h3>
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="background:#f6f8fa;padding:8px 12px;border-radius:6px;flex:1;min-width:120px;">
+          <div style="font-size:10px;text-transform:uppercase;color:#666;letter-spacing:.05em;">Signals</div>
+          <div style="font-size:13px;margin-top:2px;">
+            <span style="color:#cf222e;font-weight:600;">{s['overpriced_count']}</span> over
+            <span style="margin:0 3px;color:#ccc;">|</span>
+            <span style="color:#666;">{s['market_count']}</span> mkt
+            <span style="margin:0 3px;color:#ccc;">|</span>
+            <span style="color:#1a7f37;font-weight:600;">{s['underpriced_count']}</span> under
+          </div>
+        </div>
+        <div style="background:#f6f8fa;padding:8px 12px;border-radius:6px;flex:1;min-width:120px;">
+          <div style="font-size:10px;text-transform:uppercase;color:#666;letter-spacing:.05em;">Revenue Impact</div>
+          <div style="font-size:16px;font-weight:600;color:{impact_color};margin-top:2px;">{impact_sign}${abs(impact):,}/mo</div>
+        </div>
+        <div style="background:#f6f8fa;padding:8px 12px;border-radius:6px;flex:1;min-width:120px;">
+          <div style="font-size:10px;text-transform:uppercase;color:#666;letter-spacing:.05em;">Quality Score</div>
+          <div style="font-size:16px;font-weight:600;margin-top:2px;">{s['subject_quality_score']}<span style="color:#999;font-size:12px;font-weight:400;">/10</span></div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;">Top Opportunities</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="text-align:left;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Unit</th>
+          <th style="text-align:left;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Type</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Listed</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Rec</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Delta</th>
+          <th style="text-align:left;padding:4px 8px;border-bottom:2px solid #e5e7eb;font-size:10px;color:#666;">Signal</th>
+        </tr></thead>
+        <tbody>{opp_rows}</tbody>
+      </table>
+    </td></tr>"""
+
+    return text, html
+
+
 # --- HTML rendering ---------------------------------------------------------
 
-def _html_multi_template(prop_results: list[dict], subject: str) -> str:
+def _html_multi_template(prop_results: list[dict], subject: str,
+                         pricing_html: str = "") -> str:
     """Multi-property email HTML."""
     total_props = len(prop_results)
     successes = sum(1 for r in prop_results if r["success"])
@@ -614,6 +727,7 @@ def _html_multi_template(prop_results: list[dict], subject: str) -> str:
       <h3 style="margin:0 0 10px 0;font-size:14px;color:#1a1a1a;">Changes</h3>
       {change_sections}{no_changes_msg}
     </td></tr>
+    {pricing_html}
     <tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;background:#f6f8fa;border-radius:0 0 8px 8px;">
       <a href="{_e(_dashboard_url())}" style="color:#1f4e78;font-size:13px;text-decoration:none;">View dashboard &rarr;</a>
     </td></tr>
