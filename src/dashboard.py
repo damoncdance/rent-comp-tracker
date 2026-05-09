@@ -1479,5 +1479,14 @@ def _e(s) -> str:
 
 
 def _json_safe(data) -> str:
-    raw = json.dumps(data)
-    return raw.replace("</", r"<\/")
+    """Serialize data to JSON safe for embedding inside <script> tags.
+
+    Escapes sequences that could break out of a script context:
+      </   → <\\/   (prevents </script> injection)
+      <!--  → <\\!-- (prevents HTML comment injection)
+    Using ensure_ascii=True so all non-ASCII chars are \\uXXXX-escaped.
+    """
+    raw = json.dumps(data, ensure_ascii=True)
+    raw = raw.replace("</", r"<\/")
+    raw = raw.replace("<!--", r"<\!--")
+    return raw
