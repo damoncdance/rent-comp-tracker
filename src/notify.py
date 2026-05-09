@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 import requests
 
 from src.config import DASHBOARD_DIR, get_active_properties, get_property_by_id
-from src.export_xlsx import report_workbook_path
+from src.export_xlsx import comp_report_path, report_workbook_path
 from src.storage import db, latest_snapshot_id
 
 
@@ -87,13 +87,8 @@ def send_digest(
         log(f"notify: digest build failed: {type(e).__name__}: {e}")
         return False
 
-    # Attach workbook from first successful property if available
-    attachment = None
-    for r in prop_results:
-        if r["success"] and r["snapshot_id"]:
-            attachment = _resend_attachment_for_snapshot(r["snapshot_id"], log)
-            if attachment:
-                break
+    # Attach the consolidated comp report if available
+    attachment = _resend_comp_report_attachment(log)
 
     return _send(subject, text_body, html_body, log, attachment=attachment)
 
@@ -268,6 +263,24 @@ def _send(
     except Exception:
         log(f"notify: Resend rejected (HTTP {resp.status_code}): {resp.text[:300]}")
     return False
+
+
+def _resend_comp_report_attachment(log) -> dict | None:
+    """Attach the consolidated Rent_Comp_Report.xlsx if it exists."""
+    path = comp_report_path()
+    if not path.is_file():
+        log(f"notify: no comp report at {path}, skipping attachment")
+        return None
+    raw = path.read_bytes()
+    max_raw = 28 * 1024 * 1024
+    if len(raw) > max_raw:
+        log(f"notify: comp report too large ({len(raw)} bytes), not attaching")
+        return None
+    log(f"notify: attaching comp report {path.name} ({len(raw) / 1024:.1f} KB)")
+    return {
+        "filename": path.name,
+        "content": base64.b64encode(raw).decode("ascii"),
+    }
 
 
 def _resend_attachment_for_snapshot(snapshot_id: int, log) -> dict | None:

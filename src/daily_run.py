@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from src.changes import diff_snapshots
 from src.config import get_active_properties
 from src.dashboard import render
-from src.export_xlsx import export as export_xlsx
+from src.export_xlsx import export as export_xlsx, export_comp_report
 from src.notify import send_digest
 from src.parsers import get_parser, UnsupportedPlatformError
 from src.scraper import fetch_html, fetch_securecafe, fetch_rentcafe_optimized, FetchError
@@ -61,13 +61,14 @@ def main(argv: list[str] | None = None) -> int:
     # Render dashboard (uses Aberdeen/first property for now — Phase 4 will make it multi-property)
     _safe_render(log)
 
-    # Export xlsx for each successful property
+    # Export xlsx — consolidated comp report + per-property
+    snapshot_ids = {prop["id"]: snap_id for prop, snap_id, _ in results}
+    _safe_comp_report(snapshot_ids, log)
     for prop, snap_id, ok in results:
         if ok and snap_id:
             _safe_export(prop, snap_id, log)
 
     # Send consolidated email digest
-    snapshot_ids = {prop["id"]: snap_id for prop, snap_id, _ in results}
     send_digest(snapshot_ids=snapshot_ids, log=log)
 
     successes = sum(1 for _, _, ok in results if ok)
@@ -147,6 +148,19 @@ def _safe_render(log) -> None:
         log(f"Dashboard written to {path}")
     except Exception as e:
         log(f"DASHBOARD RENDER FAILED: {e}")
+        if "--verbose" in sys.argv:
+            traceback.print_exc()
+
+
+def _safe_comp_report(snapshot_ids: dict, log) -> None:
+    try:
+        path = export_comp_report(snapshot_ids)
+        if path:
+            log(f"Comp report written to {path}")
+        else:
+            log("Comp report skipped (no data)")
+    except Exception as e:
+        log(f"COMP REPORT FAILED: {e}")
         if "--verbose" in sys.argv:
             traceback.print_exc()
 
