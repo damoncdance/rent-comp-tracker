@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Inspire West Town — Rent Comp Report</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
 <style>
   :root {
     --fg:#e8e8e8; --fg-strong:#fff; --muted:#8a8f98; --bg:#0e1117; --card:#161b22;
@@ -58,6 +58,7 @@
     white-space:nowrap;
   }
   .tab:hover { color:var(--fg); }
+  .tab:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px 4px 0 0; }
   .tab.active {
     color:var(--fg-strong); background:var(--bg);
     border-color:var(--line); border-bottom:1px solid var(--bg);
@@ -83,11 +84,11 @@
     .comp-stats { grid-template-columns:repeat(3,1fr); }
   }
   @media (max-width:520px) {
-    .span-3 { grid-column:span 6; }
+    .span-3,.span-6 { grid-column:span 12; }
     body { font-size:12px; padding:0 8px 32px; }
-    header { padding:12px 0 0; gap:10px; }
+    header { padding:12px 0 0; gap:10px; flex-direction:column; align-items:flex-start; }
     h1 { font-size:16px; }
-    .meta { font-size:11px; }
+    .meta { font-size:11px; flex-wrap:wrap; }
     .tabs { padding-top:6px; -webkit-overflow-scrolling:touch; }
     .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
     .grid { gap:6px; margin-top:8px; }
@@ -99,11 +100,14 @@
     .chart-wide { height:220px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
-    .comp-table th,.comp-table td { min-width:80px; font-size:11px; }
-    .comp-table .row-label { min-width:100px; font-size:10px; }
-    .comp-stats { grid-template-columns:repeat(3,1fr); gap:4px; padding:6px; }
+    .comp-table th,.comp-table td { min-width:70px; font-size:10px; }
+    .comp-table .row-label { min-width:80px; font-size:10px; }
+    .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
+    .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
     .prop-nav-menu { width:200px; right:-8px; }
+    .comp-header { flex-wrap:wrap; }
+    .metric-card .metric-row { font-size:11px; }
   }
 
   /* KPI stat cards */
@@ -191,7 +195,6 @@
   .badge-subject { background:var(--accent); color:#fff; }
 
   /* Comp cards (rent comps tab) */
-  .comp-card { }
   .subject-card { border-color:var(--accent); border-width:2px; }
   .comp-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
   .comp-num {
@@ -252,6 +255,22 @@
   .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
   .nav-link.subject { color:var(--accent); font-weight:600; }
 
+  /* Sparse data notice */
+  .sparse-note {
+    max-width:1400px; margin:12px auto 0; padding:10px 16px;
+    background:rgba(210,153,34,0.08); border:1px solid rgba(210,153,34,0.25);
+    border-radius:6px; color:var(--yellow); font-size:12px;
+    font-family:var(--mono); text-align:center;
+  }
+
+  /* Lease-up badge */
+  .badge-leaseup {
+    background:rgba(210,153,34,0.15); color:var(--yellow);
+    font-size:9px; padding:2px 6px; border-radius:3px;
+    font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    font-family:var(--mono); margin-left:6px; vertical-align:middle;
+  }
+
   /* Disclaimer */
   .disclaimer {
     color:var(--muted); font-size:11px; font-style:italic;
@@ -268,32 +287,33 @@
       <span class="sep">/</span>
       <span>13 properties</span>
       <span class="sep">/</span>
-      <span>May 10, 2026 05:40 UTC</span>
+      <span>May 10, 2026 13:44 UTC</span>
     </div>
   </div>
   <nav class="prop-nav" id="propNav">
-    <button class="prop-nav-toggle" onclick="document.getElementById('propNav').classList.toggle('open')">
+    <button class="prop-nav-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="propNavMenu"
+      onclick="var n=document.getElementById('propNav'),open=n.classList.toggle('open');this.setAttribute('aria-expanded',open)">
       Properties &#9660;
     </button>
-    <div class="prop-nav-menu">
-      <a href="inspire-west-town/index.html" class="nav-link subject">Inspire West Town</a><a href="aberdeen-crossing/index.html" class="nav-link">1100 W Grand Ave</a><a href="812-west-adams/index.html" class="nav-link">812 West Adams</a><a href="arthurs-of-old-town/index.html" class="nav-link">Arthurs of Old Town</a><a href="evo-union-park/index.html" class="nav-link">Evo Union Park Apartments</a><a href="hugo-river-north/index.html" class="nav-link">Hugo River North</a><a href="nevele22/index.html" class="nav-link">Nevele22</a><a href="seven-10-west/index.html" class="nav-link">Seven 10 West</a><a href="spoke-apartments/index.html" class="nav-link">Spoke Apartments</a><a href="the-ardus/index.html" class="nav-link">The Ardus</a><a href="the-jax/index.html" class="nav-link">The Jax</a><a href="the-van-buren/index.html" class="nav-link">The Van Buren</a><a href="westerly/index.html" class="nav-link">Westerly</a>
+    <div class="prop-nav-menu" id="propNavMenu" role="menu">
+      <a href="inspire-west-town/index.html" class="nav-link subject" role="menuitem">Inspire West Town</a><a href="aberdeen-crossing/index.html" class="nav-link" role="menuitem">1100 W Grand Ave</a><a href="812-west-adams/index.html" class="nav-link" role="menuitem">812 West Adams</a><a href="arthurs-of-old-town/index.html" class="nav-link" role="menuitem">Arthurs of Old Town</a><a href="evo-union-park/index.html" class="nav-link" role="menuitem">Evo Union Park Apartments</a><a href="hugo-river-north/index.html" class="nav-link" role="menuitem">Hugo River North</a><a href="nevele22/index.html" class="nav-link" role="menuitem">Nevele22</a><a href="seven-10-west/index.html" class="nav-link" role="menuitem">Seven 10 West</a><a href="spoke-apartments/index.html" class="nav-link" role="menuitem">Spoke Apartments</a><a href="the-ardus/index.html" class="nav-link" role="menuitem">The Ardus</a><a href="the-jax/index.html" class="nav-link" role="menuitem">The Jax</a><a href="the-van-buren/index.html" class="nav-link" role="menuitem">The Van Buren</a><a href="westerly/index.html" class="nav-link" role="menuitem">Westerly</a>
     </div>
   </nav>
 </header>
 
-<div class="tabs">
-  <button class="tab active" data-tab="overview">Overview</button>
-  <button class="tab" data-tab="bytypes">By Unit Type</button>
-  <button class="tab" data-tab="comps">Rent Comps</button>
-  <button class="tab" data-tab="rankings">Rankings</button>
-  <button class="tab" data-tab="trends">Trends</button>
-  <button class="tab" data-tab="concessions">Concessions</button>
-  <button class="tab" data-tab="fees">Fees</button>
-  <button class="tab" data-tab="pricing">Pricing</button>
+<div class="tabs" role="tablist" aria-label="Dashboard sections">
+  <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-overview" id="btn-overview" data-tab="overview" tabindex="0">Overview</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-bytypes" id="btn-bytypes" data-tab="bytypes" tabindex="-1">By Unit Type</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-comps" id="btn-comps" data-tab="comps" tabindex="-1">Rent Comps</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-rankings" id="btn-rankings" data-tab="rankings" tabindex="-1">Rankings</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-trends" id="btn-trends" data-tab="trends" tabindex="-1">Trends</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-concessions" id="btn-concessions" data-tab="concessions" tabindex="-1">Concessions</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-fees" id="btn-fees" data-tab="fees" tabindex="-1">Fees</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-pricing" id="btn-pricing" data-tab="pricing" tabindex="-1">Pricing</button>
 </div>
 
 <!-- TAB: Overview -->
-<div id="tab-overview" class="tab-panel active">
+<div id="tab-overview" class="tab-panel active" role="tabpanel" aria-labelledby="btn-overview">
 <div class="grid">
   <div class="card span-12">
     <h2>Rent Comps Overview</h2>
@@ -353,7 +373,7 @@
 </div>
 
 <!-- TAB: By Unit Type -->
-<div id="tab-bytypes" class="tab-panel">
+<div id="tab-bytypes" class="tab-panel" role="tabpanel" aria-labelledby="btn-bytypes">
 <div class="grid">
   
   <div class="card span-3 metric-card">
@@ -417,7 +437,7 @@
 </div>
 
 <!-- TAB: Rent Comps -->
-<div id="tab-comps" class="tab-panel">
+<div id="tab-comps" class="tab-panel" role="tabpanel" aria-labelledby="btn-comps">
 <div class="grid">
   <div class="card span-12">
     <h2>Rent Comps</h2>
@@ -451,7 +471,7 @@
     <div class="comp-header">
       <span class="comp-num">1</span>
       <div>
-        <div class="comp-name">1100 W Grand Ave</div>
+        <div class="comp-name">1100 W Grand Ave<span class="badge-leaseup">Lease-Up</span></div>
         <div class="comp-addr">1100 West Grand Avenue, Chicago, IL 60642</div>
         <div class="comp-mgmt">Cagan</div>
       </div>
@@ -726,37 +746,38 @@
 </div>
 
 <!-- TAB: Rankings -->
-<div id="tab-rankings" class="tab-panel">
+<div id="tab-rankings" class="tab-panel" role="tabpanel" aria-labelledby="btn-rankings">
 <div class="grid">
   <div class="card span-12">
     <h2>Property Rankings</h2>
     <p class="subtitle">Compare asking rents by bedroom count across your market.</p>
   </div>
-  <div class="card span-6"><h3>Studio</h3><div class="chart-wrap chart-tall"><canvas id="rankStudio"></canvas></div></div>
-  <div class="card span-6"><h3>1 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank1BR"></canvas></div></div>
-  <div class="card span-6"><h3>2 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank2BR"></canvas></div></div>
-  <div class="card span-6"><h3>3 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank3BR"></canvas></div></div>
+  <div class="card span-6"><h3>Studio</h3><div class="chart-wrap chart-tall"><canvas id="rankStudio" aria-label="Bar chart ranking properties by studio rent"></canvas></div></div>
+  <div class="card span-6"><h3>1 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank1BR" aria-label="Bar chart ranking properties by 1-bedroom rent"></canvas></div></div>
+  <div class="card span-6"><h3>2 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank2BR" aria-label="Bar chart ranking properties by 2-bedroom rent"></canvas></div></div>
+  <div class="card span-6"><h3>3 BR</h3><div class="chart-wrap chart-tall"><canvas id="rank3BR" aria-label="Bar chart ranking properties by 3-bedroom rent"></canvas></div></div>
 </div>
 </div>
 
 <!-- TAB: Trends -->
-<div id="tab-trends" class="tab-panel">
+<div id="tab-trends" class="tab-panel" role="tabpanel" aria-labelledby="btn-trends">
+<p class="sparse-note">Data collecting — trends require 7+ days of snapshots for meaningful patterns.</p>
 <div class="grid">
   <div class="card span-12">
     <h2>Historical Rent Trends</h2>
     <p class="subtitle">Average rent over time across your comp set.</p>
-    <div class="chart-wrap chart-wide"><canvas id="rentTrendChart"></canvas></div>
+    <div class="chart-wrap chart-wide"><canvas id="rentTrendChart" aria-label="Line chart showing average rent trends over time across all properties"></canvas></div>
   </div>
   <div class="card span-12">
     <h2>Historical Exposure</h2>
     <p class="subtitle">Track the percentage of units listed for rent over time.</p>
-    <div class="chart-wrap chart-wide"><canvas id="exposureChart"></canvas></div>
+    <div class="chart-wrap chart-wide"><canvas id="exposureChart" aria-label="Line chart showing exposure percentage over time across all properties"></canvas></div>
   </div>
 </div>
 </div>
 
 <!-- TAB: Concessions -->
-<div id="tab-concessions" class="tab-panel">
+<div id="tab-concessions" class="tab-panel" role="tabpanel" aria-labelledby="btn-concessions">
 <div class="grid">
   <div class="card span-12">
     <h2>Concessions</h2>
@@ -772,7 +793,7 @@
 </div>
 
 <!-- TAB: Fees -->
-<div id="tab-fees" class="tab-panel">
+<div id="tab-fees" class="tab-panel" role="tabpanel" aria-labelledby="btn-fees">
 <div class="grid">
   <div class="card span-12">
     <h2>Fees</h2>
@@ -782,7 +803,7 @@
 <thead><tr><th>Property</th><th class="num">Application Fee</th>
 <th class="num">Admin Fee</th><th class="num">Pet Rent</th>
 <th class="num">Parking</th></tr></thead>
-<tbody><tr class="subject-row"><td>Inspire West Town</td><td class="num">$60</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$250–$350/mo</td></tr><tr><td>1100 W Grand Ave</td><td class="num">$75</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr><tr><td>812 West Adams</td><td class="num">$50</td><td class="num">$500</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Arthurs of Old Town</td><td class="num">$75</td><td class="num">$600</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Evo Union Park Apartments</td><td class="num">$50</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$300/mo</td></tr><tr><td>Hugo River North</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$300/mo</td></tr><tr><td>Nevele22</td><td class="num">$50</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$335/mo</td></tr><tr><td>Seven 10 West</td><td class="num">$75</td><td class="num">$400</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Spoke Apartments</td><td class="num">$50</td><td class="num">$400</td><td class="num">$50/pet</td><td class="num">$250/mo</td></tr><tr><td>The Ardus</td><td class="num">$50</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$350/mo</td></tr><tr><td>The Jax</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">—</td></tr><tr><td>The Van Buren</td><td class="num">$60</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$350/mo</td></tr><tr><td>Westerly</td><td class="num">$65</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr></tbody>
+<tbody><tr class="subject-row"><td>Inspire West Town</td><td class="num">$60</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$250–$350/mo</td></tr><tr><td>1100 W Grand Ave</td><td class="num">$75</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr><tr><td>812 West Adams</td><td class="num">$50</td><td class="num">$500</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Arthurs of Old Town</td><td class="num">$75</td><td class="num">$600</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Evo Union Park Apartments</td><td class="num">$50</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$300/mo</td></tr><tr><td>Hugo River North</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$300/mo</td></tr><tr><td>Nevele22</td><td class="num">$50</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$335/mo</td></tr><tr><td>Seven 10 West</td><td class="num">$75</td><td class="num">$400</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Spoke Apartments</td><td class="num">$50</td><td class="num">$400</td><td class="num">$50/pet</td><td class="num">$250/mo</td></tr><tr><td>The Ardus</td><td class="num">$50</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">$350/mo</td></tr><tr><td>The Jax</td><td class="num">$75</td><td class="num">$500</td><td class="num">$25/pet</td><td class="num">—</td></tr><tr><td>The Van Buren</td><td class="num">$60</td><td class="num">$500</td><td class="num">$30/pet</td><td class="num">$350/mo</td></tr><tr><td>Westerly</td><td class="num">$65</td><td class="num">$500</td><td class="num">$35/pet</td><td class="num">$350/mo</td></tr><tr class="comp-avg-row"><td><strong>Market Average</strong></td><td class="num">$62</td><td class="num">$492</td><td class="num">$32</td><td class="num">$315</td></tr></tbody>
 </table>
     </div>
   </div>
@@ -790,7 +811,7 @@
 </div>
 
 <!-- TAB: Pricing -->
-<div id="tab-pricing" class="tab-panel">
+<div id="tab-pricing" class="tab-panel" role="tabpanel" aria-labelledby="btn-pricing">
 
 <div class="grid">
   <div class="card span-3 stat-card">
@@ -817,11 +838,16 @@
       <span style="margin:0 4px;opacity:0.3;">|</span>
       <span style="color:var(--green);">1</span> under
     </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:6px;">
+      <span style="color:var(--red);">Red</span> = listed above recommended &middot;
+      <span style="color:var(--green);">Green</span> = listed below recommended &middot;
+      Gray = at market
+    </div>
   </div>
 <div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #58a6ff"><h3>Studio Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.72/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #3fb950"><h3>1 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.19/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #d29922"><h3>2 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.05/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #f85149"><h3>3 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.11/ft²</span></div></div></div>
   <div class="card span-12">
     <h2>Pricing Recommendations — Inspire West Town</h2>
-    <p class="subtitle">12 comps analyzed &middot; Generated May 10, 2026 05:40 UTC</p>
+    <p class="subtitle">12 comps analyzed &middot; Generated May 10, 2026 13:44 UTC</p>
     <div class="scroll scroll-wide">
       <table class="data-table" style="min-width:1100px;">
         <thead><tr>
@@ -831,7 +857,7 @@
           <th class="num">Delta</th><th class="num">Delta %</th><th>Signal</th>
           <th class="num">Listed PSF</th><th class="num">Rec PSF</th>
         </tr></thead>
-        <tbody><tr><td class="mono">407</td><td>x07 Studio - 1 Bath</td><td class="num">S</td><td class="num">419</td><td class="num">$2,300</td><td class="num" style="font-weight:700;">$2,054</td><td class="num">$2,157</td><td class="num">$1,951</td><td class="num" style="color:var(--red);">$246</td><td class="num" style="color:var(--red);">-10.7%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.49</td><td class="num">$4.90</td></tr><tr><td class="mono">610</td><td>x10 Studio - 1 Bath, Balcony</td><td class="num">S</td><td class="num">446</td><td class="num">$2,320</td><td class="num" style="font-weight:700;">$2,276</td><td class="num">$2,390</td><td class="num">$2,162</td><td class="num" style="color:var(--red);">$44</td><td class="num" style="color:var(--red);">-1.9%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$5.20</td><td class="num">$5.10</td></tr><tr><td class="mono">317</td><td>x17 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">516</td><td class="num">$2,490</td><td class="num" style="font-weight:700;">$2,199</td><td class="num">$2,309</td><td class="num">$2,089</td><td class="num" style="color:var(--red);">$291</td><td class="num" style="color:var(--red);">-11.7%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.83</td><td class="num">$4.26</td></tr><tr><td class="mono">702</td><td>x02 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">527</td><td class="num">$2,720</td><td class="num" style="font-weight:700;">$2,298</td><td class="num">$2,413</td><td class="num">$2,183</td><td class="num" style="color:var(--red);">$422</td><td class="num" style="color:var(--red);">-15.5%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.16</td><td class="num">$4.36</td></tr><tr><td class="mono">816</td><td>x16 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">562</td><td class="num">$2,650</td><td class="num" style="font-weight:700;">$2,528</td><td class="num">$2,654</td><td class="num">$2,402</td><td class="num" style="color:var(--red);">$122</td><td class="num" style="color:var(--red);">-4.6%</td><td><span style="color:#d29922;font-weight:600;font-size:11px;">↓ Overpriced</span></td><td class="num">$4.72</td><td class="num">$4.50</td></tr><tr><td class="mono">605</td><td>x05 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">788</td><td class="num">$3,550</td><td class="num" style="font-weight:700;">$3,253</td><td class="num">$3,416</td><td class="num">$3,090</td><td class="num" style="color:var(--red);">$297</td><td class="num" style="color:var(--red);">-8.4%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.51</td><td class="num">$4.13</td></tr><tr><td class="mono">705</td><td>x05 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">788</td><td class="num">$3,590</td><td class="num" style="font-weight:700;">$3,318</td><td class="num">$3,484</td><td class="num">$3,152</td><td class="num" style="color:var(--red);">$272</td><td class="num" style="color:var(--red);">-7.6%</td><td><span style="color:#d29922;font-weight:600;font-size:11px;">↓ Overpriced</span></td><td class="num">$4.56</td><td class="num">$4.21</td></tr><tr><td class="mono">606</td><td>x06 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">791</td><td class="num">$3,590</td><td class="num" style="font-weight:700;">$3,269</td><td class="num">$3,432</td><td class="num">$3,106</td><td class="num" style="color:var(--red);">$321</td><td class="num" style="color:var(--red);">-8.9%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.54</td><td class="num">$4.13</td></tr><tr><td class="mono">711</td><td>x11 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">819</td><td class="num">$3,545</td><td class="num" style="font-weight:700;">$3,471</td><td class="num">$3,645</td><td class="num">$3,297</td><td class="num" style="color:var(--red);">$74</td><td class="num" style="color:var(--red);">-2.1%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$4.33</td><td class="num">$4.24</td></tr><tr><td class="mono">613</td><td>x13 2 Bed - 2 Bath, Balcony</td><td class="num">2BR</td><td class="num">847</td><td class="num">$5,000</td><td class="num" style="font-weight:700;">$3,647</td><td class="num">$3,829</td><td class="num">$3,465</td><td class="num" style="color:var(--red);">$1,353</td><td class="num" style="color:var(--red);">-27.1%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.90</td><td class="num">$4.31</td></tr><tr><td class="mono">412</td><td>x12 2 Bed - 2 Bath, Balcony</td><td class="num">2BR</td><td class="num">884</td><td class="num">$3,675</td><td class="num" style="font-weight:700;">$3,834</td><td class="num">$4,026</td><td class="num">$3,642</td><td class="num" style="color:var(--green);">+$159</td><td class="num" style="color:var(--green);">+4.3%</td><td><span style="color:#3fb950;font-weight:600;font-size:11px;">↑ Underpriced</span></td><td class="num">$4.16</td><td class="num">$4.34</td></tr><tr><td class="mono">614</td><td>x14 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">892</td><td class="num">$3,750</td><td class="num" style="font-weight:700;">$3,764</td><td class="num">$3,952</td><td class="num">$3,576</td><td class="num" style="color:var(--green);">+$14</td><td class="num" style="color:var(--green);">+0.4%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$4.20</td><td class="num">$4.22</td></tr></tbody>
+        <tbody><tr class="bed-group-header"><td colspan="13" style="border-left:3px solid #58a6ff;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-strong);padding:10px 10px 6px;">Studio (2 units)</td></tr><tr><td class="mono">407</td><td>x07 Studio - 1 Bath</td><td class="num">S</td><td class="num">419</td><td class="num">$2,300</td><td class="num" style="font-weight:700;">$2,054</td><td class="num">$2,157</td><td class="num">$1,951</td><td class="num" style="color:var(--red);">$246</td><td class="num" style="color:var(--red);">-10.7%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.49</td><td class="num">$4.90</td></tr><tr><td class="mono">610</td><td>x10 Studio - 1 Bath, Balcony</td><td class="num">S</td><td class="num">446</td><td class="num">$2,320</td><td class="num" style="font-weight:700;">$2,276</td><td class="num">$2,390</td><td class="num">$2,162</td><td class="num" style="color:var(--red);">$44</td><td class="num" style="color:var(--red);">-1.9%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$5.20</td><td class="num">$5.10</td></tr><tr style="border-top:1px solid var(--line);font-weight:600;font-size:11px;"><td colspan="4" style="text-align:right;color:var(--muted);">Studio subtotal</td><td class="num">$2,310</td><td class="num">$2,165</td><td colspan="2"></td><td class="num" style="color:var(--red);">$145</td><td colspan="2"></td><td colspan="2" class="num" style="color:var(--red);">Impact: $290/mo</td></tr><tr class="bed-group-header"><td colspan="13" style="border-left:3px solid #3fb950;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-strong);padding:10px 10px 6px;">1 BR (3 units)</td></tr><tr><td class="mono">317</td><td>x17 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">516</td><td class="num">$2,490</td><td class="num" style="font-weight:700;">$2,199</td><td class="num">$2,309</td><td class="num">$2,089</td><td class="num" style="color:var(--red);">$291</td><td class="num" style="color:var(--red);">-11.7%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.83</td><td class="num">$4.26</td></tr><tr><td class="mono">702</td><td>x02 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">527</td><td class="num">$2,720</td><td class="num" style="font-weight:700;">$2,298</td><td class="num">$2,413</td><td class="num">$2,183</td><td class="num" style="color:var(--red);">$422</td><td class="num" style="color:var(--red);">-15.5%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.16</td><td class="num">$4.36</td></tr><tr><td class="mono">816</td><td>x16 1 Bed - 1 Bath</td><td class="num">1BR</td><td class="num">562</td><td class="num">$2,650</td><td class="num" style="font-weight:700;">$2,528</td><td class="num">$2,654</td><td class="num">$2,402</td><td class="num" style="color:var(--red);">$122</td><td class="num" style="color:var(--red);">-4.6%</td><td><span style="color:#d29922;font-weight:600;font-size:11px;">↓ Overpriced</span></td><td class="num">$4.72</td><td class="num">$4.50</td></tr><tr style="border-top:1px solid var(--line);font-weight:600;font-size:11px;"><td colspan="4" style="text-align:right;color:var(--muted);">1 BR subtotal</td><td class="num">$2,620</td><td class="num">$2,342</td><td colspan="2"></td><td class="num" style="color:var(--red);">$278</td><td colspan="2"></td><td colspan="2" class="num" style="color:var(--red);">Impact: $835/mo</td></tr><tr class="bed-group-header"><td colspan="13" style="border-left:3px solid #d29922;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-strong);padding:10px 10px 6px;">2 BR (7 units)</td></tr><tr><td class="mono">412</td><td>x12 2 Bed - 2 Bath, Balcony</td><td class="num">2BR</td><td class="num">884</td><td class="num">$3,675</td><td class="num" style="font-weight:700;">$3,834</td><td class="num">$4,026</td><td class="num">$3,642</td><td class="num" style="color:var(--green);">+$159</td><td class="num" style="color:var(--green);">+4.3%</td><td><span style="color:#3fb950;font-weight:600;font-size:11px;">↑ Underpriced</span></td><td class="num">$4.16</td><td class="num">$4.34</td></tr><tr><td class="mono">605</td><td>x05 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">788</td><td class="num">$3,550</td><td class="num" style="font-weight:700;">$3,253</td><td class="num">$3,416</td><td class="num">$3,090</td><td class="num" style="color:var(--red);">$297</td><td class="num" style="color:var(--red);">-8.4%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.51</td><td class="num">$4.13</td></tr><tr><td class="mono">606</td><td>x06 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">791</td><td class="num">$3,590</td><td class="num" style="font-weight:700;">$3,269</td><td class="num">$3,432</td><td class="num">$3,106</td><td class="num" style="color:var(--red);">$321</td><td class="num" style="color:var(--red);">-8.9%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$4.54</td><td class="num">$4.13</td></tr><tr><td class="mono">613</td><td>x13 2 Bed - 2 Bath, Balcony</td><td class="num">2BR</td><td class="num">847</td><td class="num">$5,000</td><td class="num" style="font-weight:700;">$3,647</td><td class="num">$3,829</td><td class="num">$3,465</td><td class="num" style="color:var(--red);">$1,353</td><td class="num" style="color:var(--red);">-27.1%</td><td><span style="color:#f85149;font-weight:600;font-size:11px;">⚠ Well Above</span></td><td class="num">$5.90</td><td class="num">$4.31</td></tr><tr><td class="mono">614</td><td>x14 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">892</td><td class="num">$3,750</td><td class="num" style="font-weight:700;">$3,764</td><td class="num">$3,952</td><td class="num">$3,576</td><td class="num" style="color:var(--green);">+$14</td><td class="num" style="color:var(--green);">+0.4%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$4.20</td><td class="num">$4.22</td></tr><tr><td class="mono">705</td><td>x05 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">788</td><td class="num">$3,590</td><td class="num" style="font-weight:700;">$3,318</td><td class="num">$3,484</td><td class="num">$3,152</td><td class="num" style="color:var(--red);">$272</td><td class="num" style="color:var(--red);">-7.6%</td><td><span style="color:#d29922;font-weight:600;font-size:11px;">↓ Overpriced</span></td><td class="num">$4.56</td><td class="num">$4.21</td></tr><tr><td class="mono">711</td><td>x11 2 Bed - 2 Bath</td><td class="num">2BR</td><td class="num">819</td><td class="num">$3,545</td><td class="num" style="font-weight:700;">$3,471</td><td class="num">$3,645</td><td class="num">$3,297</td><td class="num" style="color:var(--red);">$74</td><td class="num" style="color:var(--red);">-2.1%</td><td><span style="color:#8a8f98;font-weight:600;font-size:11px;">≈ Market</span></td><td class="num">$4.33</td><td class="num">$4.24</td></tr><tr style="border-top:1px solid var(--line);font-weight:600;font-size:11px;"><td colspan="4" style="text-align:right;color:var(--muted);">2 BR subtotal</td><td class="num">$3,814</td><td class="num">$3,508</td><td colspan="2"></td><td class="num" style="color:var(--red);">$306</td><td colspan="2"></td><td colspan="2" class="num" style="color:var(--red);">Impact: $2,144/mo</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -841,32 +867,72 @@
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;font-family:var(--mono);font-size:12px;">
       <div><span style="color:var(--muted);">Avg Listed:</span> <strong>$3,265</strong></div>
       <div><span style="color:var(--muted);">Avg Recommended:</span> <strong>$2,993</strong></div>
-      <div><span style="color:var(--muted);">Avg Delta:</span> <strong style="color:var(--green);">$272</strong></div>
-      <div><span style="color:var(--muted);">Avg Delta %:</span> <strong style="color:var(--green);">-7.8%</strong></div>
+      <div><span style="color:var(--muted);">Avg Delta:</span> <strong style="color:var(--red);">$272</strong></div>
+      <div><span style="color:var(--muted);">Avg Delta %:</span> <strong style="color:var(--red);">-7.8%</strong></div>
     </div>
   </div>
 </div>
 </div>
 
 <script>
-/* Close property dropdown on outside click */
+/* Close property dropdown on outside click or Escape */
 document.addEventListener('click', function(e) {
   var nav = document.getElementById('propNav');
-  if (nav && !nav.contains(e.target)) nav.classList.remove('open');
+  if (nav && !nav.contains(e.target)) {
+    nav.classList.remove('open');
+    nav.querySelector('.prop-nav-toggle').setAttribute('aria-expanded', 'false');
+  }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var nav = document.getElementById('propNav');
+    if (nav && nav.classList.contains('open')) {
+      nav.classList.remove('open');
+      var btn = nav.querySelector('.prop-nav-toggle');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.focus();
+    }
+  }
 });
 
-/* Tab switching */
-document.querySelectorAll('.tab').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+/* Tab switching (WAI-ARIA tabs pattern) */
+(function() {
+  var tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  function activate(tab) {
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+    });
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); });
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+    tab.focus();
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  }
+  tabs.forEach(function(btn) { btn.addEventListener('click', function() { activate(btn); }); });
+  /* Keyboard: Left/Right arrows, Home/End */
+  tabs.forEach(function(btn) {
+    btn.addEventListener('keydown', function(e) {
+      var idx = tabs.indexOf(btn);
+      if (e.key === 'ArrowRight') { activate(tabs[(idx + 1) % tabs.length]); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft') { activate(tabs[(idx - 1 + tabs.length) % tabs.length]); e.preventDefault(); }
+      else if (e.key === 'Home') { activate(tabs[0]); e.preventDefault(); }
+      else if (e.key === 'End') { activate(tabs[tabs.length - 1]); e.preventDefault(); }
+    });
   });
-});
+})();
 
-Chart.defaults.color = '#8a8f98';
-Chart.defaults.borderColor = '#30363d';
+/* Read theme colors from CSS custom properties */
+var _cs = getComputedStyle(document.documentElement);
+var _c = function(v) { return _cs.getPropertyValue(v).trim(); };
+var C_MUTED = _c('--muted'), C_LINE = _c('--line'), C_GREEN = _c('--green'),
+    C_RED = _c('--red'), C_YELLOW = _c('--yellow'), C_ACCENT = _c('--accent');
+var C_LINE_ALPHA = 'rgba(48,54,61,0.6)';
+
+Chart.defaults.color = C_MUTED;
+Chart.defaults.borderColor = C_LINE;
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
 
@@ -900,7 +966,7 @@ function makeRankChart(canvasId, data) {
       scales: {
         x: {
           ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } },
-          grid: { color: 'rgba(48,54,61,0.6)' }
+          grid: { color: C_LINE_ALPHA }
         },
         y: {
           ticks: { font: { size: 11 } },
@@ -928,11 +994,11 @@ if (rentTrend.datasets.length > 0) {
         x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
         y: {
           ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } },
-          grid: { color: 'rgba(48,54,61,0.6)' }
+          grid: { color: C_LINE_ALPHA }
         }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: '#8a8f98' } }
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: C_MUTED } }
       }
     }
   });
@@ -951,12 +1017,13 @@ if (exposure.datasets.length > 0) {
         x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
         y: {
           ticks: { callback: v => v + '%', font: { size: 10 } },
-          grid: { color: 'rgba(48,54,61,0.6)' },
-          beginAtZero: true
+          grid: { color: C_LINE_ALPHA },
+          beginAtZero: true,
+          max: 100
         }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: '#8a8f98' } }
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: C_MUTED } }
       }
     }
   });

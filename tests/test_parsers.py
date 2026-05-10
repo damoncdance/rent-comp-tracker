@@ -219,3 +219,161 @@ class TestRentCafeOptimized:
         })
         units, _ = parse_all(data)
         assert len(units) == 1
+
+
+# ---------------------------------------------------------------------------
+# SecureCafe
+# ---------------------------------------------------------------------------
+
+class TestSecureCafe:
+    @pytest.fixture()
+    def json_text(self):
+        return (FIXTURES / "securecafe_minimal.json").read_text()
+
+    def test_parse_all_returns_units_and_floorplans(self, json_text):
+        from src.parsers.securecafe import parse_all
+        units, floorplans = parse_all(json_text)
+        assert len(units) == 3
+        assert len(floorplans) == 2
+
+    def test_unit_fields(self, json_text):
+        from src.parsers.securecafe import parse_all
+        units, _ = parse_all(json_text)
+        u = units[0]
+        assert u["UnitCode"] == "101"
+        assert u["Beds"] == 0
+        assert u["SqFt"] == 500
+        assert u["MinRent"] == 1600.0
+
+    def test_concession_text(self, json_text):
+        from src.parsers.securecafe import parse_all
+        units, _ = parse_all(json_text)
+        assert units[0]["ConcessionText"] == ""
+        assert units[2]["ConcessionText"] == "$500 off first month"
+
+    def test_date_normalization(self, json_text):
+        from src.parsers.securecafe import parse_all
+        units, _ = parse_all(json_text)
+        assert units[0]["AvailableDate"] == "2026-05-15"
+
+    def test_parse_error_on_missing_floorplans(self):
+        from src.parsers.securecafe import parse_all, ParseError
+        with pytest.raises(ParseError):
+            parse_all('{"other": []}')
+
+    def test_price_interpolation_multiple_units(self, json_text):
+        from src.parsers.securecafe import parse_all
+        units, _ = parse_all(json_text)
+        # Studio A has 2 units with price range 1600-1700
+        assert units[0]["MinRent"] == 1600.0
+        assert units[1]["MinRent"] == 1700.0
+
+
+# ---------------------------------------------------------------------------
+# AppFolio
+# ---------------------------------------------------------------------------
+
+class TestAppFolio:
+    @pytest.fixture()
+    def html(self):
+        return (FIXTURES / "appfolio_minimal.html").read_text()
+
+    def test_parse_all_returns_units_and_floorplans(self, html):
+        from src.parsers.appfolio import parse_all
+        units, floorplans = parse_all(html)
+        assert len(units) == 2
+        assert len(floorplans) == 2
+
+    def test_unit_fields(self, html):
+        from src.parsers.appfolio import parse_all
+        units, _ = parse_all(html)
+        u = units[0]
+        assert u["UnitCode"] == "405"
+        assert u["Beds"] == 0
+        assert u["SqFt"] == 451.0
+        assert u["MinRent"] == 1950.0
+
+    def test_one_bedroom_parsed(self, html):
+        from src.parsers.appfolio import parse_all
+        units, _ = parse_all(html)
+        u = units[1]
+        assert u["Beds"] == 1
+        assert u["MinRent"] == 2400.0
+
+    def test_parse_error_on_no_markers(self):
+        from src.parsers.appfolio import parse_all, ParseError
+        with pytest.raises(ParseError):
+            parse_all("<html><body>No markers</body></html>")
+
+
+# ---------------------------------------------------------------------------
+# Nestio
+# ---------------------------------------------------------------------------
+
+class TestNestio:
+    @pytest.fixture()
+    def json_text(self):
+        return (FIXTURES / "nestio_minimal.json").read_text()
+
+    def test_parse_all_returns_units_and_floorplans(self, json_text):
+        from src.parsers.nestio import parse_all
+        units, floorplans = parse_all(json_text)
+        assert len(units) == 2
+        assert len(floorplans) == 2
+
+    def test_unit_fields(self, json_text):
+        from src.parsers.nestio import parse_all
+        units, _ = parse_all(json_text)
+        u = units[0]
+        assert u["UnitCode"] == "4A"
+        assert u["Beds"] == 1
+        assert u["SqFt"] == 650.0
+        assert u["MinRent"] == 2100.0
+
+    def test_concession_text(self, json_text):
+        from src.parsers.nestio import parse_all
+        units, _ = parse_all(json_text)
+        assert units[0]["ConcessionText"] == ""
+        assert "$1000" in units[1]["ConcessionText"]
+
+    def test_parse_error_on_invalid_json(self):
+        from src.parsers.nestio import parse_all, ParseError
+        with pytest.raises(ParseError):
+            parse_all("not json")
+
+
+# ---------------------------------------------------------------------------
+# WooCommerce
+# ---------------------------------------------------------------------------
+
+class TestWooCommerce:
+    @pytest.fixture()
+    def json_text(self):
+        return (FIXTURES / "woocommerce_minimal.json").read_text()
+
+    def test_parse_all_returns_units_and_floorplans(self, json_text):
+        from src.parsers.woocommerce import parse_all
+        units, floorplans = parse_all(json_text)
+        assert len(units) == 2
+        assert len(floorplans) == 2
+
+    def test_unit_fields(self, json_text):
+        from src.parsers.woocommerce import parse_all
+        units, _ = parse_all(json_text)
+        u = units[0]
+        assert u["UnitCode"] == "513"
+        assert u["Beds"] == 2
+        assert u["SqFt"] == 1077.0
+        assert u["MinRent"] == 4495.0
+
+    def test_convertible_as_studio(self, json_text):
+        from src.parsers.woocommerce import parse_all
+        units, _ = parse_all(json_text)
+        u = units[1]
+        assert u["Beds"] == 0
+        assert u["MinRent"] == 2595.0
+
+    def test_parse_error_on_empty(self):
+        from src.parsers.woocommerce import parse_all, ParseError
+        with pytest.raises(ParseError):
+            parse_all("[]")

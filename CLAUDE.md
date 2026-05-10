@@ -122,8 +122,8 @@ One consolidated digest per daily run covering all properties. Fires even on
 failures so the inbox doubles as a heartbeat. Includes pricing insights and
 an attached Excel comp report. Subject format:
 
-- `Rent Comps — 12 properties, 5 changes`
-- `Rent Comps — 12 properties, no changes`
+- `Rent Comps — 12 properties, 48 units, 5 changes`
+- `Rent Comps — 12 properties, 48 units, no changes`
 
 ## When the scraper breaks
 

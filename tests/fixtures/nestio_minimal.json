@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "unit_number": "4A",
+      "price": 2100,
+      "bedrooms": 1,
+      "bathrooms": 1,
+      "square_footage": 650,
+      "layout": "1 Bedroom",
+      "date_available": "2026-06-01",
+      "incentives_marketing_description": ""
+    },
+    {
+      "unit_number": "7B",
+      "price": 3200,
+      "bedrooms": 2,
+      "bathrooms": 2,
+      "square_footage": 950,
+      "layout": "2 Bedroom",
+      "date_available": "2026-07-01",
+      "incentives_marketing_description": "$1000 off first month"
+    }
+  ]
+}

@@ -71,12 +71,29 @@ jobs:
           DASHBOARD_URL:  https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: |
           # xvfb-run provides a virtual display for Playwright headed mode
-          # (needed to bypass Cloudflare on SecureCafe properties)
-          xvfb-run python -m src.daily_run --verbose || true
+          # (needed to bypass Cloudflare on SecureCafe properties).
+          #
+          # || true: The daily run exits non-zero when any property fails to
+          # fetch, but partial failures are expected (sites go down, Cloudflare
+          # blocks, etc). We want the workflow to stay green and continue to
+          # commit whatever data we did collect, deploy the dashboard, and
+          # push. Failure visibility comes from the email digest (sent by
+          # notify.py even on failures) and per-property fetch_status in the DB.
+          xvfb-run python -m src.daily_run --verbose 2>&1 | tee /tmp/daily_run.log || true
           # Always set dashboard-ready so Pages deploys even when some
-          # properties fail to fetch (exit 1). The || true above ensures
-          # we always reach this line.
+          # properties fail to fetch.
           echo "dashboard-ready=true" >> $GITHUB_OUTPUT
+
+      - name: Annotate failures (if any)
+        if: always()
+        run: |
+          if [ -f /tmp/daily_run.log ]; then
+            FAILS=$(grep -c 'FAILED' /tmp/daily_run.log || true)
+            if [ "$FAILS" -gt 0 ]; then
+              DETAILS=$(grep 'FAILED' /tmp/daily_run.log | head -10)
+              echo "::warning title=Property fetch failures ($FAILS)::$DETAILS"
+            fi
+          fi
 
       - name: Commit updated data and dashboard
         run: |

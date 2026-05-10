@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>The Van Buren — Availability Detail</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
 <style>
   :root {
     --fg:#e8e8e8; --fg-strong:#fff; --muted:#8a8f98; --bg:#0e1117; --card:#161b22;
@@ -58,6 +58,7 @@
     white-space:nowrap;
   }
   .tab:hover { color:var(--fg); }
+  .tab:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px 4px 0 0; }
   .tab.active {
     color:var(--fg-strong); background:var(--bg);
     border-color:var(--line); border-bottom:1px solid var(--bg);
@@ -83,11 +84,11 @@
     .comp-stats { grid-template-columns:repeat(3,1fr); }
   }
   @media (max-width:520px) {
-    .span-3 { grid-column:span 6; }
+    .span-3,.span-6 { grid-column:span 12; }
     body { font-size:12px; padding:0 8px 32px; }
-    header { padding:12px 0 0; gap:10px; }
+    header { padding:12px 0 0; gap:10px; flex-direction:column; align-items:flex-start; }
     h1 { font-size:16px; }
-    .meta { font-size:11px; }
+    .meta { font-size:11px; flex-wrap:wrap; }
     .tabs { padding-top:6px; -webkit-overflow-scrolling:touch; }
     .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
     .grid { gap:6px; margin-top:8px; }
@@ -99,11 +100,14 @@
     .chart-wide { height:220px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
-    .comp-table th,.comp-table td { min-width:80px; font-size:11px; }
-    .comp-table .row-label { min-width:100px; font-size:10px; }
-    .comp-stats { grid-template-columns:repeat(3,1fr); gap:4px; padding:6px; }
+    .comp-table th,.comp-table td { min-width:70px; font-size:10px; }
+    .comp-table .row-label { min-width:80px; font-size:10px; }
+    .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
+    .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
     .prop-nav-menu { width:200px; right:-8px; }
+    .comp-header { flex-wrap:wrap; }
+    .metric-card .metric-row { font-size:11px; }
   }
 
   /* KPI stat cards */
@@ -191,7 +195,6 @@
   .badge-subject { background:var(--accent); color:#fff; }
 
   /* Comp cards (rent comps tab) */
-  .comp-card { }
   .subject-card { border-color:var(--accent); border-width:2px; }
   .comp-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
   .comp-num {
@@ -252,6 +255,22 @@
   .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
   .nav-link.subject { color:var(--accent); font-weight:600; }
 
+  /* Sparse data notice */
+  .sparse-note {
+    max-width:1400px; margin:12px auto 0; padding:10px 16px;
+    background:rgba(210,153,34,0.08); border:1px solid rgba(210,153,34,0.25);
+    border-radius:6px; color:var(--yellow); font-size:12px;
+    font-family:var(--mono); text-align:center;
+  }
+
+  /* Lease-up badge */
+  .badge-leaseup {
+    background:rgba(210,153,34,0.15); color:var(--yellow);
+    font-size:9px; padding:2px 6px; border-radius:3px;
+    font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    font-family:var(--mono); margin-left:6px; vertical-align:middle;
+  }
+
   /* Disclaimer */
   .disclaimer {
     color:var(--muted); font-size:11px; font-style:italic;
@@ -274,12 +293,12 @@
   </div>
 </header>
 
-<div class="tabs">
-  <button class="tab active" data-tab="availability">Availability</button>
-  <button class="tab" data-tab="dfees">Fees</button>
+<div class="tabs" role="tablist" aria-label="Property sections">
+  <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-availability" id="btn-availability" data-tab="availability" tabindex="0">Availability</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-dfees" id="btn-dfees" data-tab="dfees" tabindex="-1">Fees</button>
 </div>
 
-<div id="tab-availability" class="tab-panel active">
+<div id="tab-availability" class="tab-panel active" role="tabpanel" aria-labelledby="btn-availability">
 <div class="grid">
   <div class="card stat-card" style="grid-column:span 2"><div class="label">Leased</div><div class="stat">100.0%</div></div>
   <div class="card stat-card" style="grid-column:span 2"><div class="label">Exposure</div><div class="stat">1.4%</div></div>
@@ -290,16 +309,16 @@
 
   <div class="card span-4">
     <h2>Unit Mix</h2>
-    <div class="chart-wrap"><canvas id="mixChart"></canvas></div>
+    <div class="chart-wrap"><canvas id="mixChart" aria-label="Doughnut chart showing unit mix by bedroom type"></canvas></div>
   </div>
   <div class="card span-8">
     <h2>Availability Over Time</h2>
-    <div class="chart-wrap"><canvas id="totalChart"></canvas></div>
+    <div class="chart-wrap"><canvas id="totalChart" aria-label="Line chart showing available units over time"></canvas></div>
   </div>
 
   <div class="card span-12">
     <h2>Avg Rent by Type</h2>
-    <div class="chart-wrap"><canvas id="rentChart"></canvas></div>
+    <div class="chart-wrap"><canvas id="rentChart" aria-label="Line chart showing average rent by bedroom type over time"></canvas></div>
   </div>
 
   <div class="card span-7">
@@ -324,51 +343,77 @@
 </div>
 </div>
 
-<div id="tab-dfees" class="tab-panel">
+<div id="tab-dfees" class="tab-panel" role="tabpanel" aria-labelledby="btn-dfees">
 <div class="grid"><div class="card span-6"><h2>Application &amp; Admin</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody><tr><td>Application fee</td><td class='num'>$60</td><td class='note'>Per applicant</td></tr><tr><td>Administration fee</td><td class='num'>$500</td><td class='note'></td></tr></tbody></table></div></div>
 <div class="card span-6"><h2>Parking</h2><div class="scroll"><table class="data-table"><thead><tr><th>Type</th><th class="num">Monthly</th></tr></thead><tbody><tr><td>Garage</td><td class='num'>$350/mo</td></tr></tbody></table></div></div>
 <div class="card span-6"><h2>Pets</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th></tr></thead><tbody><tr><td>Monthly pet rent</td><td class='num'>$30/pet</td></tr><tr><td>Pet fee</td><td class='num'>$300</td></tr></tbody></table></div></div></div>
 </div>
 
 <script>
-document.querySelectorAll('.tab').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+/* Tab switching (WAI-ARIA tabs pattern) */
+(function() {
+  var tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  function activate(tab) {
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+    });
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); });
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+    tab.focus();
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  }
+  tabs.forEach(function(btn) { btn.addEventListener('click', function() { activate(btn); }); });
+  tabs.forEach(function(btn) {
+    btn.addEventListener('keydown', function(e) {
+      var idx = tabs.indexOf(btn);
+      if (e.key === 'ArrowRight') { activate(tabs[(idx + 1) % tabs.length]); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft') { activate(tabs[(idx - 1 + tabs.length) % tabs.length]); e.preventDefault(); }
+      else if (e.key === 'Home') { activate(tabs[0]); e.preventDefault(); }
+      else if (e.key === 'End') { activate(tabs[tabs.length - 1]); e.preventDefault(); }
+    });
   });
-});
+})();
 
-Chart.defaults.color = '#8a8f98';
-Chart.defaults.borderColor = '#30363d';
+/* Read theme colors from CSS custom properties */
+var _cs = getComputedStyle(document.documentElement);
+var _c = function(v) { return _cs.getPropertyValue(v).trim(); };
+var C_MUTED = _c('--muted'), C_LINE = _c('--line');
+var C_LINE_ALPHA = 'rgba(48,54,61,0.6)';
+var C_BED = ['#58a6ff','#3fb950','#d29922','#f85149'];
+
+Chart.defaults.color = C_MUTED;
+Chart.defaults.borderColor = C_LINE;
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
 
 const counts = {"1 BR": 1, "2 BR": 1};
 new Chart(document.getElementById('mixChart'), {
   type: 'doughnut',
-  data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#58a6ff','#3fb950','#d29922','#f85149'], borderWidth: 0 }] },
-  options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } } } }
+  data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: C_BED, borderWidth: 0 }] },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: C_MUTED } } } }
 });
 
 const timeline = [{"t": "2026-05-08T21:57:41.408630+00:00", "count": 2}, {"t": "2026-05-09T19:18:54.221561+00:00", "count": 2}, {"t": "2026-05-10T01:00:01.015234+00:00", "count": 2}, {"t": "2026-05-10T01:08:03.414716+00:00", "count": 2}, {"t": "2026-05-10T02:29:15.028477+00:00", "count": 2}, {"t": "2026-05-10T02:51:05.520451+00:00", "count": 2}, {"t": "2026-05-10T02:57:50.092363+00:00", "count": 2}, {"t": "2026-05-10T03:03:02.348242+00:00", "count": 2}, {"t": "2026-05-10T05:40:53.845275+00:00", "count": 2}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
-  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
-  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { display: false } } }
+  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { display: false } } }
 });
 
 const rentSeries = [{"t": "2026-05-08T21:57:41.408630+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-09T19:18:54.221561+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T01:00:01.015234+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T01:08:03.414716+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T02:29:15.028477+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T02:51:05.520451+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T02:57:50.092363+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T03:03:02.348242+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}, {"t": "2026-05-10T05:40:53.845275+00:00", "studio": null, "one_br": 2935.0, "two_br": 4413.0, "three_br": null}];
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
-    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: '#58a6ff', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: '#3fb950', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: '#d29922', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: '#f85149', tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
   ] },
-  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: '#8a8f98' } } } }
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: C_MUTED } } } }
 });
 </script>
 </body>

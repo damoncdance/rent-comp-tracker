@@ -1,0 +1,32 @@
+{
+  "floorplans": [
+    {
+      "id": 1,
+      "name": "Studio A",
+      "beds": 0,
+      "baths": 1,
+      "sqft": "500",
+      "lowPrice": 1600,
+      "highPrice": 1700,
+      "availableCount": 2,
+      "availableDate": "5/15/2026",
+      "unitList": ["101", "201"],
+      "special": false,
+      "specialText": ""
+    },
+    {
+      "id": 2,
+      "name": "1BR B",
+      "beds": 1,
+      "baths": 1,
+      "sqft": "750",
+      "lowPrice": 2200,
+      "highPrice": 2200,
+      "availableCount": 1,
+      "availableDate": "6/1/2026",
+      "unitList": ["305"],
+      "special": true,
+      "specialText": "$500 off first month"
+    }
+  ]
+}
