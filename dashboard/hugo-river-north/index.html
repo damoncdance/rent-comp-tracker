@@ -269,7 +269,7 @@
       <span class="sep">/</span>
       <span>Lg Development Group</span>
       <span class="sep">/</span>
-      <span>Snap #94 — May 10, 2026 02:57 UTC</span>
+      <span>Snap #107 — May 10, 2026 03:02 UTC</span>
     </div>
   </div>
 </header>
@@ -352,14 +352,14 @@ new Chart(document.getElementById('mixChart'), {
   options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } } } }
 });
 
-const timeline = [{"t": "2026-05-08T20:47:47.027242+00:00", "count": 32}, {"t": "2026-05-09T19:18:19.168323+00:00", "count": 31}, {"t": "2026-05-10T00:59:20.660056+00:00", "count": 30}, {"t": "2026-05-10T01:07:22.397389+00:00", "count": 30}, {"t": "2026-05-10T02:28:34.205765+00:00", "count": 30}, {"t": "2026-05-10T02:50:24.048976+00:00", "count": 30}, {"t": "2026-05-10T02:57:09.104671+00:00", "count": 30}];
+const timeline = [{"t": "2026-05-08T20:47:47.027242+00:00", "count": 32}, {"t": "2026-05-09T19:18:19.168323+00:00", "count": 31}, {"t": "2026-05-10T00:59:20.660056+00:00", "count": 30}, {"t": "2026-05-10T01:07:22.397389+00:00", "count": 30}, {"t": "2026-05-10T02:28:34.205765+00:00", "count": 30}, {"t": "2026-05-10T02:50:24.048976+00:00", "count": 30}, {"t": "2026-05-10T02:57:09.104671+00:00", "count": 30}, {"t": "2026-05-10T03:02:21.050069+00:00", "count": 30}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
   data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
   options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { display: false } } }
 });
 
-const rentSeries = [{"t": "2026-05-08T20:47:47.027242+00:00", "studio": 2226.4285714285716, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-09T19:18:19.168323+00:00", "studio": 2230.8333333333335, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T00:59:20.660056+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T01:07:22.397389+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:28:34.205765+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:50:24.048976+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:57:09.104671+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}];
+const rentSeries = [{"t": "2026-05-08T20:47:47.027242+00:00", "studio": 2226.4285714285716, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-09T19:18:19.168323+00:00", "studio": 2230.8333333333335, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T00:59:20.660056+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T01:07:22.397389+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:28:34.205765+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:50:24.048976+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T02:57:09.104671+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}, {"t": "2026-05-10T03:02:21.050069+00:00", "studio": 2258.0, "one_br": 2917.25, "two_br": 4228.333333333333, "three_br": 6800.0}];
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
