@@ -13,7 +13,7 @@ import html as html_mod
 import json
 import re
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from src.config import DASHBOARD_DIR, get_active_properties
@@ -1068,6 +1068,15 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
     avail = snap.get("unit_count") or 0
     exposure = round(avail / total * 100, 1) if total else 0
 
+    # Leased %: vacant = units with availability date on or before today
+    today = datetime.now(timezone.utc).date()
+    vacant_count = 0
+    for u in units:
+        avail_date = _parse_avail_date(u.get("available_date", ""))
+        if avail_date and avail_date <= today:
+            vacant_count += 1
+    leased_pct = round((total - vacant_count) / total * 100, 1) if total else 0
+
     # Bed type breakdown
     by_bed: dict[int, list] = defaultdict(list)
     for u in units:
@@ -1162,10 +1171,12 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 
 <div id="tab-availability" class="tab-panel active">
 <div class="grid">
-  <div class="card span-3 stat-card"><div class="label">Units Avail</div><div class="stat">{avail}</div></div>
-  <div class="card span-3 stat-card"><div class="label">Avg Rent</div><div class="stat">${avg_rent:,.0f}</div></div>
-  <div class="card span-3 stat-card"><div class="label">Avg Rent PSF</div><div class="stat">${avg_psf:.2f}</div></div>
-  <div class="card span-3 stat-card"><div class="label">Exposure</div><div class="stat">{exposure}%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Leased</div><div class="stat">{leased_pct}%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Exposure</div><div class="stat">{exposure}%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Units Avail</div><div class="stat">{avail}</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Vacant</div><div class="stat">{vacant_count}</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent</div><div class="stat">${avg_rent:,.0f}</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent PSF</div><div class="stat">${avg_psf:.2f}</div></div>
 
   <div class="card span-4">
     <h2>Unit Mix</h2>
@@ -1649,6 +1660,28 @@ def _fmt_date(iso: str) -> str:
         return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%b %d, %Y")
     except Exception:
         return iso[:10] if iso else ""
+
+
+def _parse_avail_date(raw: str) -> date | None:
+    """Parse an availability date string into a date object.
+
+    Handles multiple formats: 'M/D/YYYY', 'YYYY-MM-DD', ISO 8601.
+    Returns None if unparseable or empty.
+    """
+    if not raw or not raw.strip():
+        return None
+    raw = raw.strip()
+    # M/D/YYYY (e.g. "5/14/2026")
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            pass
+    # ISO 8601
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).date()
+    except Exception:
+        return None
 
 
 _SAFE_SLUG_RE = re.compile(r'^[a-z0-9][a-z0-9-]*$')
