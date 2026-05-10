@@ -122,12 +122,8 @@ def _quality_score(prop: dict, amenity_data: dict | None) -> float:
            "Premium" in amenity_data.get("fitness", ""):
             score += 0.3
 
-        # Baseline penalty
-        features_lower = {f.lower() for f in amenity_data.get("unit_features", [])}
-        features_text = " ".join(features_lower)
-        for baseline in _BASELINE_FEATURES:
-            if baseline not in features_text:
-                score -= 0.4
+        # Note: baseline feature penalties (missing W/D, quartz, stainless)
+        # are applied in _compute_amenity_adjustment() to avoid double-counting.
 
     return max(1.0, min(10.0, round(score, 1)))
 
@@ -418,7 +414,8 @@ def _compute_market_psf(
         avail = snap.get("unit_count", 1) if snap else 1
         total = prop.get("unit_count_total") or avail or 1
         exposure = max(avail / total, 0.01)
-        weight = 1 / exposure  # tighter buildings weigh more
+        # Cap weight so one very-tight building can't dominate
+        weight = min(1 / exposure, 20.0)
         by_bed[u["beds"]].append((psf, weight))
 
     result = {}
@@ -428,10 +425,10 @@ def _compute_market_psf(
             result[beds] = statistics.mean(psfs) if psfs else 0
             continue
 
-        # Remove outliers
-        sorted_psfs = sorted(psfs)
-        p10 = sorted_psfs[max(0, len(psfs) // 10)]
-        p90 = sorted_psfs[min(len(psfs) - 1, len(psfs) * 9 // 10)]
+        # Remove outliers using proper quantiles
+        quantiles = statistics.quantiles(psfs, n=10)
+        p10 = quantiles[0]   # 10th percentile
+        p90 = quantiles[-1]  # 90th percentile
         filtered = [(p, w) for p, w in pairs if p10 <= p <= p90]
 
         if not filtered:
@@ -536,23 +533,27 @@ def _unit_level_adjustment(unit: dict) -> float:
     """Compute unit-specific price adjustment from floorplan features."""
     adj = 1.0
     fp = (unit.get("floorplan_name") or "").lower()
-    code = (unit.get("unit_code") or "").lower()
+    code = (unit.get("unit_code") or "").upper()
 
     # Balcony premium
     if "balcony" in fp or "balc" in fp or "terrace" in fp:
         adj += 0.03
 
+    # Infer floor from unit code.  Handles both formats:
+    #   "L8-101" style  →  floor 8
+    #   "816"    style  →  floor 8 (first digit(s) = floor for 3-digit codes)
+    floor = _infer_floor(code)
+
     # Top floor / penthouse
     if "penthouse" in fp or "ph" in fp:
         adj += 0.05
-    elif code.startswith("l8") or code.startswith("l9") or \
-         code.startswith("l10") or code.startswith("l11"):
+    elif floor and floor >= 8:
         adj += 0.04
-    elif code.startswith("l7"):
+    elif floor == 7:
         adj += 0.02
 
     # Lower floor discount
-    if code.startswith("l2"):
+    if floor and floor <= 2:
         adj -= 0.02
 
     # Den / office bonus
@@ -560,6 +561,30 @@ def _unit_level_adjustment(unit: dict) -> float:
         adj += 0.02
 
     return round(adj, 3)
+
+
+def _infer_floor(code: str) -> int | None:
+    """Infer floor number from a unit code.
+
+    Supports:
+      "L8-101", "L10" → strip L prefix, take number
+      "816"           → floor 8 (first digit of 3-digit code)
+      "1204"          → floor 12 (first two digits of 4-digit code)
+    """
+    import re
+    if not code:
+        return None
+    # "L8", "L10-xxx" format
+    m = re.match(r"L(\d+)", code, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    # Pure numeric: 3 digits → first digit is floor, 4 digits → first two
+    if code.isdigit():
+        if len(code) == 3:
+            return int(code[0])
+        if len(code) == 4:
+            return int(code[:2])
+    return None
 
 
 def _concession_adjustment(comp_units: list[dict], beds: int, subject_unit: dict) -> float:
