@@ -69,12 +69,11 @@ jobs:
         run: |
           # xvfb-run provides a virtual display for Playwright headed mode
           # (needed to bypass Cloudflare on SecureCafe properties)
-          xvfb-run python -m src.daily_run --verbose
-          # Even on fetch/parse failure (exit 1), we still want to commit the
-          # failure-snapshot row and deploy the dashboard. Capture exit code
-          # but don't fail the job here.
+          xvfb-run python -m src.daily_run --verbose || true
+          # Always set dashboard-ready so Pages deploys even when some
+          # properties fail to fetch (exit 1). The || true above ensures
+          # we always reach this line.
           echo "dashboard-ready=true" >> $GITHUB_OUTPUT
-        continue-on-error: true
 
       - name: Commit updated data and dashboard
         run: |
