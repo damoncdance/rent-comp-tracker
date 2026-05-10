@@ -171,13 +171,17 @@ def fetch_rentcafe_optimized(
     save_raw: bool = True,
     verbose: bool = False,
 ) -> tuple[str, int]:
-    """Fetch a Cloudflare-protected RentCafe 'optimized' page via Playwright.
+    """Fetch unit-level data from a RentCafe 'optimized' site via Playwright.
 
-    These sites don't have ysi.unitsList — data lives in setGA4Cookie calls
-    embedded in the static HTML. We just need to get past Cloudflare and
-    return the page source.
+    These sites don't have ysi.unitsList. Instead we:
+    1. Visit the main /floorplans page (past Cloudflare)
+    2. Extract GA4 floorplan-tier data from setGA4Cookie calls
+    3. Find "Availability" links to floorplan detail pages
+    4. Visit each detail page and extract real unit data from applyGAClick()
 
-    Returns (html, 200).
+    Returns (json_string, 200) where json_string contains:
+    - "units": list of unit dicts with real apartment numbers
+    - "ga4_floorplans": floorplan-tier data as fallback
     """
     try:
         from playwright.sync_api import sync_playwright
@@ -217,29 +221,127 @@ def fetch_rentcafe_optimized(
                 if verbose:
                     print(f"    waiting ({(i+1)*2}s) — title: {title}")
                 if "moment" not in title.lower() and "challenge" not in title.lower():
-                    # Give the page a bit more time to fully render
                     time.sleep(3)
                     break
 
-            html = page.content()
+            main_html = page.content()
+
+            if not main_html or len(main_html) < 500:
+                raise FetchError("Page content too short — Cloudflare may not have resolved")
+
+            if "setGA4Cookie" not in main_html:
+                raise FetchError("setGA4Cookie not found in page — site format may have changed")
+
+            # Extract GA4 floorplan-tier data from main page
+            ga4_fps = _extract_ga4_floorplans(main_html)
+            if verbose:
+                print(f"    Found {len(ga4_fps)} floorplan tiers from GA4 data")
+
+            # Find floorplan detail page URLs (only those with "Availability" links)
+            detail_urls = _extract_detail_urls(page)
+            if verbose:
+                print(f"    Found {len(detail_urls)} floorplan detail pages to visit")
+
+            # Visit each detail page and extract unit-level data
+            all_units = []
+            for detail_url in detail_urls:
+                try:
+                    page.goto(detail_url, wait_until="domcontentloaded", timeout=20000)
+                    time.sleep(2)
+                    units = _extract_units_from_detail(page)
+                    all_units.extend(units)
+                    if verbose:
+                        print(f"    {detail_url.split('/floorplans/')[-1]}: {len(units)} units")
+                except Exception as e:
+                    if verbose:
+                        print(f"    Failed to fetch detail page {detail_url}: {e}")
+
             browser.close()
 
-        if not html or len(html) < 500:
-            raise FetchError("Page content too short — Cloudflare may not have resolved")
-
-        # Verify we got GA4 data
-        if "setGA4Cookie" not in html:
-            raise FetchError("setGA4Cookie not found in page — site format may have changed")
+        result = json.dumps({
+            "units": all_units,
+            "ga4_floorplans": ga4_fps,
+        })
 
         if save_raw:
-            _write_raw(html, slug)
+            _write_raw(result, slug)
 
-        return html, 200
+        return result, 200
 
     except FetchError:
         raise
     except Exception as e:
         raise FetchError(f"Playwright fetch failed: {e}")
+
+
+def _extract_ga4_floorplans(html: str) -> list[dict]:
+    """Extract floorplan-tier data from setGA4Cookie('GT', ...) calls."""
+    pattern = re.compile(
+        r"setGA4Cookie\(\s*'GT'\s*,"
+        r"\s*'([^']+)'\s*,"
+        r"\s*'(\d+)'\s*,"
+        r"\s*'(\d+)'\s*,"
+        r"\s*'(\d+)'\s*,"
+        r"\s*'(\d+)'\s*,"
+        r"\s*'(\d+)'\s*\)",
+    )
+    seen = set()
+    results = []
+    for name, beds, min_sqft, max_sqft, min_rent, max_rent in pattern.findall(html):
+        if name not in seen:
+            seen.add(name)
+            results.append({
+                "name": name, "beds": beds,
+                "minSqft": min_sqft, "maxSqft": max_sqft,
+                "minRent": min_rent, "maxRent": max_rent,
+            })
+    return results
+
+
+def _extract_detail_urls(page) -> list[str]:
+    """Find unique floorplan detail page URLs from "Availability" links."""
+    urls = page.evaluate("""() => {
+        const seen = new Set();
+        const urls = [];
+        document.querySelectorAll('a[href*="/floorplans/"]').forEach(a => {
+            const href = a.href;
+            if (href && !href.endsWith('/floorplans') && !href.endsWith('/floorplans/')) {
+                if (!seen.has(href)) {
+                    seen.add(href);
+                    urls.push(href);
+                }
+            }
+        });
+        return urls;
+    }""")
+    return urls
+
+
+def _extract_units_from_detail(page) -> list[dict]:
+    """Extract unit data from applyGAClick() calls on a detail page."""
+    return page.evaluate("""() => {
+        const units = [];
+        document.querySelectorAll('a[onclick*="applyGAClick"]').forEach(a => {
+            const onclick = a.getAttribute('onclick') || '';
+            const href = a.getAttribute('href') || '';
+            const match = onclick.match(
+                /applyGAClick\\('([^']+)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)'/
+            );
+            if (match) {
+                const dateMatch = href.match(/MoveInDate=([^&]+)/);
+                units.push({
+                    fpName: match[1],
+                    beds: match[2],
+                    sqft: match[3],
+                    minRent: match[4],
+                    maxRent: match[5],
+                    unitNumber: match[6],
+                    moveInDate: dateMatch ? decodeURIComponent(dateMatch[1]) : ''
+                });
+            }
+        });
+        return units;
+    }""")
 
 
 def _write_raw(html: str, slug: str) -> Path:

@@ -115,3 +115,107 @@ class TestSightMap:
         }
         units, _ = parse_all(json.dumps(data))
         assert len(units) == 0
+
+
+# ---------------------------------------------------------------------------
+# RentCafe Optimized
+# ---------------------------------------------------------------------------
+
+class TestRentCafeOptimized:
+    def test_parse_json_with_real_units(self):
+        import json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = json.dumps({
+            "units": [
+                {"fpName": "x02 1 Bed - 1 Bath", "beds": "1 Bed(s)", "sqft": "527",
+                 "minRent": "2720.00", "maxRent": "2720.00", "unitNumber": "702",
+                 "moveInDate": "6/29/2026"},
+                {"fpName": "x05 2 Bed - 2 Bath", "beds": "2 Bed(s)", "sqft": "788",
+                 "minRent": "3550.00", "maxRent": "3550.00", "unitNumber": "605",
+                 "moveInDate": "7/8/2026"},
+            ],
+            "ga4_floorplans": [],
+        })
+        units, floorplans = parse_all(data)
+        assert len(units) == 2
+        assert units[0]["UnitCode"] == "702"
+        assert units[0]["Beds"] == 1
+        assert units[0]["Baths"] == 1
+        assert units[0]["MinRent"] == 2720
+        assert units[0]["AvailableDate"] == "6/29/2026"
+        assert units[1]["UnitCode"] == "605"
+        assert len(floorplans) == 2
+
+    def test_zero_rent_units_filtered(self):
+        import json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = json.dumps({
+            "units": [
+                {"fpName": "x01 1 Bed - 1 Bath", "beds": "1", "sqft": "647",
+                 "minRent": "0.00", "maxRent": "0.00", "unitNumber": "401",
+                 "moveInDate": ""},
+                {"fpName": "x02 1 Bed - 1 Bath", "beds": "1", "sqft": "527",
+                 "minRent": "2720.00", "maxRent": "2720.00", "unitNumber": "702",
+                 "moveInDate": "6/29/2026"},
+            ],
+            "ga4_floorplans": [],
+        })
+        units, floorplans = parse_all(data)
+        assert len(units) == 1
+        assert units[0]["UnitCode"] == "702"
+
+    def test_ga4_fallback_filters_zero_rent(self):
+        import json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = json.dumps({
+            "units": [],
+            "ga4_floorplans": [
+                {"name": "x01 1 Bed - 1 Bath", "beds": "1", "minSqft": "647",
+                 "maxSqft": "647", "minRent": "0", "maxRent": "0"},
+                {"name": "x02 1 Bed - 1 Bath", "beds": "1", "minSqft": "527",
+                 "maxSqft": "527", "minRent": "2720", "maxRent": "2720"},
+            ],
+        })
+        units, floorplans = parse_all(data)
+        assert len(units) == 1
+        assert units[0]["FloorplanName"] == "x02 1 Bed - 1 Bath"
+        # GA4 fallback uses synthetic FP- prefix
+        assert units[0]["UnitCode"].startswith("FP-")
+
+    def test_legacy_html_fallback(self):
+        from src.parsers.rentcafe_optimized import parse_all
+        html = """<script>setGA4Cookie('GT', 'Studio A', '0', '400', '400', '1800', '1800')</script>"""
+        units, floorplans = parse_all(html)
+        assert len(units) == 1
+        assert units[0]["MinRent"] == 1800
+
+    def test_bath_extraction_from_name(self):
+        import json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = json.dumps({
+            "units": [
+                {"fpName": "x05 2 Bed - 2 Bath", "beds": "2", "sqft": "788",
+                 "minRent": "3550.00", "maxRent": "3550.00", "unitNumber": "605",
+                 "moveInDate": ""},
+            ],
+            "ga4_floorplans": [],
+        })
+        units, _ = parse_all(data)
+        assert units[0]["Baths"] == 2
+
+    def test_duplicate_units_deduplicated(self):
+        import json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = json.dumps({
+            "units": [
+                {"fpName": "x02 1 Bed - 1 Bath", "beds": "1", "sqft": "527",
+                 "minRent": "2720.00", "maxRent": "2720.00", "unitNumber": "702",
+                 "moveInDate": "6/29/2026"},
+                {"fpName": "x02 1 Bed - 1 Bath", "beds": "1", "sqft": "527",
+                 "minRent": "2720.00", "maxRent": "2720.00", "unitNumber": "702",
+                 "moveInDate": "6/29/2026"},
+            ],
+            "ga4_floorplans": [],
+        })
+        units, _ = parse_all(data)
+        assert len(units) == 1
