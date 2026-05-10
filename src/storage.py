@@ -264,6 +264,13 @@ def comp_grid_data() -> list[dict]:
                 row["avg_sqft"] = totals["avg_sqft"]
                 row["overall_min_rent"] = totals["min_rent"]
                 row["overall_max_rent"] = totals["max_rent"]
+
+                # Availability dates for leased % calculation
+                avail_dates = conn.execute(
+                    "SELECT available_date FROM units WHERE snapshot_id = ?",
+                    (snap_id,),
+                ).fetchall()
+                row["avail_dates"] = [r["available_date"] for r in avail_dates]
             else:
                 row["by_bed"] = {}
                 row["concessions"] = []

@@ -399,6 +399,21 @@ def _build_overview_table(grid: list[dict]) -> str:
         r += f'<td{cls}>{p.get("unit_count_total", "")}</td>'
     rows.append(r)
 
+    # Leased %
+    r = '<td class="row-label">Leased</td>'
+    today = datetime.now(timezone.utc).date()
+    for p in grid:
+        cls = ' class="subject-col"' if p.get("is_subject") else ''
+        total = p.get("unit_count_total") or 0
+        avail_dates = p.get("avail_dates", [])
+        if total and avail_dates is not None:
+            vacant = sum(1 for d in avail_dates if _is_vacant(d, today))
+            leased = round((total - vacant) / total * 100, 1)
+            r += f'<td{cls}>{leased}%</td>'
+        else:
+            r += f'<td{cls}>—</td>'
+    rows.append(r)
+
     # Exposure %
     r = '<td class="row-label">Exposure</td>'
     for p in grid:
@@ -1660,6 +1675,12 @@ def _fmt_date(iso: str) -> str:
         return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%b %d, %Y")
     except Exception:
         return iso[:10] if iso else ""
+
+
+def _is_vacant(raw_date: str, today: date) -> bool:
+    """Return True if the unit's availability date is on or before today."""
+    d = _parse_avail_date(raw_date)
+    return d is not None and d <= today
 
 
 def _parse_avail_date(raw: str) -> date | None:
