@@ -80,8 +80,31 @@
   @media (max-width:960px) {
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); }
   }
-  @media (max-width:520px) { .span-3 { grid-column:span 12; } }
+  @media (max-width:520px) {
+    .span-3 { grid-column:span 6; }
+    body { font-size:12px; padding:0 8px 32px; }
+    header { padding:12px 0 0; gap:10px; }
+    h1 { font-size:16px; }
+    .meta { font-size:11px; }
+    .tabs { padding-top:6px; -webkit-overflow-scrolling:touch; }
+    .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
+    .grid { gap:6px; margin-top:8px; }
+    .card { padding:10px 12px; }
+    .stat { font-size:18px; }
+    .stat-card { min-height:56px; }
+    .chart-wrap { height:180px; }
+    .chart-tall { height:240px; }
+    .chart-wide { height:220px; }
+    .scroll { max-height:min(400px,50vh); }
+    th,td { padding:5px 6px; font-size:11px; }
+    .comp-table th,.comp-table td { min-width:80px; font-size:11px; }
+    .comp-table .row-label { min-width:100px; font-size:10px; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); gap:4px; padding:6px; }
+    .comp-name { font-size:13px; }
+    .prop-nav-menu { width:200px; right:-8px; }
+  }
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
@@ -202,26 +225,32 @@
   }
   .metric-row span:last-child { font-weight:600; color:var(--fg-strong); }
 
-  /* Property nav */
+  /* Property nav dropdown */
   .prop-nav {
-    position:fixed; top:80px; right:clamp(8px,2vw,20px);
+    position:relative; display:inline-block;
+  }
+  .prop-nav-toggle {
+    background:var(--card); border:1px solid var(--line); border-radius:4px;
+    padding:6px 12px; font-size:11px; font-weight:600; color:var(--fg);
+    cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;
+  }
+  .prop-nav-toggle:hover { border-color:var(--accent); color:var(--fg-strong); }
+  .prop-nav-toggle .arrow { font-size:9px; transition:transform 0.2s; }
+  .prop-nav.open .prop-nav-toggle .arrow { transform:rotate(180deg); }
+  .prop-nav-menu {
+    display:none; position:absolute; top:100%; right:0; margin-top:4px;
     background:var(--card); border:1px solid var(--line); border-radius:6px;
-    padding:12px; width:180px; max-height:calc(100vh - 120px); overflow-y:auto;
-    z-index:10;
+    padding:8px; width:220px; max-height:calc(100vh - 120px); overflow-y:auto;
+    z-index:20; box-shadow:0 8px 24px rgba(0,0,0,0.4);
   }
-  .prop-nav h3 {
-    font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.06em; margin-bottom:8px;
-  }
+  .prop-nav.open .prop-nav-menu { display:block; }
   .nav-link {
-    display:block; padding:4px 8px; font-size:11px; color:var(--fg);
-    text-decoration:none; border-radius:3px; margin-bottom:2px;
+    display:block; padding:5px 10px; font-size:11px; color:var(--fg);
+    text-decoration:none; border-radius:3px; margin-bottom:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
   .nav-link.subject { color:var(--accent); font-weight:600; }
-
-  @media (max-width:1200px) { .prop-nav { display:none; } }
 
   /* Disclaimer */
   .disclaimer {
@@ -239,9 +268,17 @@
       <span class="sep">/</span>
       <span>13 properties</span>
       <span class="sep">/</span>
-      <span>May 09, 2026 20:21 UTC</span>
+      <span>May 10, 2026 00:56 UTC</span>
     </div>
   </div>
+  <nav class="prop-nav" id="propNav">
+    <button class="prop-nav-toggle" onclick="document.getElementById('propNav').classList.toggle('open')">
+      Properties &#9660;
+    </button>
+    <div class="prop-nav-menu">
+      <a href="inspire-west-town/index.html" class="nav-link subject">Inspire West Town</a><a href="aberdeen-crossing/index.html" class="nav-link">1100 W Grand Ave</a><a href="812-west-adams/index.html" class="nav-link">812 West Adams</a><a href="arthurs-of-old-town/index.html" class="nav-link">Arthurs of Old Town</a><a href="evo-union-park/index.html" class="nav-link">Evo Union Park Apartments</a><a href="hugo-river-north/index.html" class="nav-link">Hugo River North</a><a href="nevele22/index.html" class="nav-link">Nevele22</a><a href="seven-10-west/index.html" class="nav-link">Seven 10 West</a><a href="spoke-apartments/index.html" class="nav-link">Spoke Apartments</a><a href="the-ardus/index.html" class="nav-link">The Ardus</a><a href="the-jax/index.html" class="nav-link">The Jax</a><a href="the-van-buren/index.html" class="nav-link">The Van Buren</a><a href="westerly/index.html" class="nav-link">Westerly</a>
+    </div>
+  </nav>
 </header>
 
 <div class="tabs">
@@ -784,7 +821,7 @@
 <div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #58a6ff"><h3>Studio Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.72/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #3fb950"><h3>1 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.21/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #d29922"><h3>2 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.07/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #f85149"><h3>3 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.11/ft²</span></div></div></div>
   <div class="card span-12">
     <h2>Pricing Recommendations — Inspire West Town</h2>
-    <p class="subtitle">12 comps analyzed &middot; Generated May 09, 2026 20:21 UTC</p>
+    <p class="subtitle">12 comps analyzed &middot; Generated May 10, 2026 00:56 UTC</p>
     <div class="scroll scroll-wide">
       <table class="data-table" style="min-width:1100px;">
         <thead><tr>
@@ -811,13 +848,13 @@
 </div>
 </div>
 
-<!-- Property Navigation -->
-<nav class="prop-nav">
-  <h3>Properties</h3>
-  <a href="inspire-west-town/" class="nav-link subject">Inspire West Town</a><a href="aberdeen-crossing/" class="nav-link">1100 W Grand Ave</a><a href="812-west-adams/" class="nav-link">812 West Adams</a><a href="arthurs-of-old-town/" class="nav-link">Arthurs of Old Town</a><a href="evo-union-park/" class="nav-link">Evo Union Park Apartments</a><a href="hugo-river-north/" class="nav-link">Hugo River North</a><a href="nevele22/" class="nav-link">Nevele22</a><a href="seven-10-west/" class="nav-link">Seven 10 West</a><a href="spoke-apartments/" class="nav-link">Spoke Apartments</a><a href="the-ardus/" class="nav-link">The Ardus</a><a href="the-jax/" class="nav-link">The Jax</a><a href="the-van-buren/" class="nav-link">The Van Buren</a><a href="westerly/" class="nav-link">Westerly</a>
-</nav>
-
 <script>
+/* Close property dropdown on outside click */
+document.addEventListener('click', function(e) {
+  var nav = document.getElementById('propNav');
+  if (nav && !nav.contains(e.target)) nav.classList.remove('open');
+});
+
 /* Tab switching */
 document.querySelectorAll('.tab').forEach(function(btn) {
   btn.addEventListener('click', function() {

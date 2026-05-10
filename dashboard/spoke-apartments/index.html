@@ -80,8 +80,31 @@
   @media (max-width:960px) {
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); }
   }
-  @media (max-width:520px) { .span-3 { grid-column:span 12; } }
+  @media (max-width:520px) {
+    .span-3 { grid-column:span 6; }
+    body { font-size:12px; padding:0 8px 32px; }
+    header { padding:12px 0 0; gap:10px; }
+    h1 { font-size:16px; }
+    .meta { font-size:11px; }
+    .tabs { padding-top:6px; -webkit-overflow-scrolling:touch; }
+    .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
+    .grid { gap:6px; margin-top:8px; }
+    .card { padding:10px 12px; }
+    .stat { font-size:18px; }
+    .stat-card { min-height:56px; }
+    .chart-wrap { height:180px; }
+    .chart-tall { height:240px; }
+    .chart-wide { height:220px; }
+    .scroll { max-height:min(400px,50vh); }
+    th,td { padding:5px 6px; font-size:11px; }
+    .comp-table th,.comp-table td { min-width:80px; font-size:11px; }
+    .comp-table .row-label { min-width:100px; font-size:10px; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); gap:4px; padding:6px; }
+    .comp-name { font-size:13px; }
+    .prop-nav-menu { width:200px; right:-8px; }
+  }
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
@@ -202,26 +225,32 @@
   }
   .metric-row span:last-child { font-weight:600; color:var(--fg-strong); }
 
-  /* Property nav */
+  /* Property nav dropdown */
   .prop-nav {
-    position:fixed; top:80px; right:clamp(8px,2vw,20px);
+    position:relative; display:inline-block;
+  }
+  .prop-nav-toggle {
+    background:var(--card); border:1px solid var(--line); border-radius:4px;
+    padding:6px 12px; font-size:11px; font-weight:600; color:var(--fg);
+    cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;
+  }
+  .prop-nav-toggle:hover { border-color:var(--accent); color:var(--fg-strong); }
+  .prop-nav-toggle .arrow { font-size:9px; transition:transform 0.2s; }
+  .prop-nav.open .prop-nav-toggle .arrow { transform:rotate(180deg); }
+  .prop-nav-menu {
+    display:none; position:absolute; top:100%; right:0; margin-top:4px;
     background:var(--card); border:1px solid var(--line); border-radius:6px;
-    padding:12px; width:180px; max-height:calc(100vh - 120px); overflow-y:auto;
-    z-index:10;
+    padding:8px; width:220px; max-height:calc(100vh - 120px); overflow-y:auto;
+    z-index:20; box-shadow:0 8px 24px rgba(0,0,0,0.4);
   }
-  .prop-nav h3 {
-    font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.06em; margin-bottom:8px;
-  }
+  .prop-nav.open .prop-nav-menu { display:block; }
   .nav-link {
-    display:block; padding:4px 8px; font-size:11px; color:var(--fg);
-    text-decoration:none; border-radius:3px; margin-bottom:2px;
+    display:block; padding:5px 10px; font-size:11px; color:var(--fg);
+    text-decoration:none; border-radius:3px; margin-bottom:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
   .nav-link.subject { color:var(--accent); font-weight:600; }
-
-  @media (max-width:1200px) { .prop-nav { display:none; } }
 
   /* Disclaimer */
   .disclaimer {
@@ -233,7 +262,7 @@
 <body>
 <header>
   <div class="header-left">
-    <a href="../" class="back-link">&larr; Comp Set Overview</a>
+    <a href="../index.html" class="back-link">&larr; Comp Set Overview</a>
     <h1>Spoke Apartments</h1>
     <div class="meta">
       <span>728 N Morgan St, Chicago, IL 60642</span>
@@ -254,8 +283,8 @@
 <div class="grid">
   <div class="card span-3 stat-card"><div class="label">Units Avail</div><div class="stat">21</div></div>
   <div class="card span-3 stat-card"><div class="label">Avg Rent</div><div class="stat">$2,713</div></div>
+  <div class="card span-3 stat-card"><div class="label">Avg Rent PSF</div><div class="stat">$4.71</div></div>
   <div class="card span-3 stat-card"><div class="label">Exposure</div><div class="stat">5.8%</div></div>
-  <div class="card span-3 stat-card"><div class="label">Total Units</div><div class="stat">363</div></div>
 
   <div class="card span-4">
     <h2>Unit Mix</h2>
@@ -276,7 +305,7 @@
     <div class="scroll">
       <table class="data-table">
         <thead><tr><th>Type</th><th>Tier</th><th>Unit</th><th class="num">SqFt</th><th class="num">Rent</th><th>Avail</th><th>Concession</th></tr></thead>
-        <tbody><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA1&quot;,&quot;provider_id&quot;:&quot;5606936&quot;}</td><td class='mono'>S-0413</td><td class='num'>571</td><td class='num'>$2,621</td><td>Jul 07, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA1&quot;,&quot;provider_id&quot;:&quot;5606936&quot;}</td><td class='mono'>S-1113</td><td class='num'>571</td><td class='num'>$2,691</td><td>Jun 20, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA1&quot;,&quot;provider_id&quot;:&quot;5606936&quot;}</td><td class='mono'>S-1315</td><td class='num'>571</td><td class='num'>$2,731</td><td>May 23, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA1&quot;,&quot;provider_id&quot;:&quot;5606936&quot;}</td><td class='mono'>S-1415</td><td class='num'>571</td><td class='num'>$2,741</td><td>Jul 06, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA2&quot;,&quot;provider_id&quot;:&quot;5606937&quot;}</td><td class='mono'>S-0803</td><td class='num'>613</td><td class='num'>$2,706</td><td>Jun 03, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA2&quot;,&quot;provider_id&quot;:&quot;5606937&quot;}</td><td class='mono'>S-0903</td><td class='num'>613</td><td class='num'>$2,716</td><td>Jul 02, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA3&quot;,&quot;provider_id&quot;:&quot;5606938&quot;}</td><td class='mono'>S-1005</td><td class='num'>642</td><td class='num'>$2,761</td><td>May 10, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;JA3&quot;,&quot;provider_id&quot;:&quot;5606938&quot;}</td><td class='mono'>S-1205</td><td class='num'>642</td><td class='num'>$2,781</td><td>Aug 21, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S1&quot;,&quot;provider_id&quot;:&quot;5606933&quot;}</td><td class='mono'>S-1214</td><td class='num'>417</td><td class='num'>$2,265</td><td>May 27, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>N-0514</td><td class='num'>487</td><td class='num'>$2,405</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>N-0702</td><td class='num'>487</td><td class='num'>$2,455</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>N-1114</td><td class='num'>487</td><td class='num'>$2,475</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>N-1117</td><td class='num'>487</td><td class='num'>$2,475</td><td>Jun 01, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>N-1210</td><td class='num'>487</td><td class='num'>$2,510</td><td>Aug 02, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>S-0910</td><td class='num'>487</td><td class='num'>$2,455</td><td>Jun 20, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>S-1009</td><td class='num'>487</td><td class='num'>$2,465</td><td>Jun 28, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>{&quot;name&quot;:&quot;S2&quot;,&quot;provider_id&quot;:&quot;5606934&quot;}</td><td class='mono'>S-1410</td><td class='num'>487</td><td class='num'>$2,505</td><td>Jun 25, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;A1&quot;,&quot;provider_id&quot;:&quot;5606913&quot;}</td><td class='mono'>N-1113</td><td class='num'>596</td><td class='num'>$2,719</td><td>Aug 07, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;A12&quot;,&quot;provider_id&quot;:&quot;5955600&quot;}</td><td class='mono'>N-1118</td><td class='num'>811</td><td class='num'>$3,204</td><td>Jul 21, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>{&quot;name&quot;:&quot;A6&quot;,&quot;provider_id&quot;:&quot;5606917&quot;}</td><td class='mono'>S-1211</td><td class='num'>679</td><td class='num'>$2,919</td><td>Jul 07, 2026</td><td class='concession-cell'></td></tr><tr><td>2 BR</td><td>{&quot;name&quot;:&quot;B5&quot;,&quot;provider_id&quot;:&quot;5606927&quot;}</td><td class='mono'>S-1302</td><td class='num'>1,168</td><td class='num'>$4,379</td><td>Jul 26, 2026</td><td class='concession-cell'></td></tr></tbody>
+        <tbody><tr><td>Studio</td><td>JA1</td><td class='mono'>S-0413</td><td class='num'>571</td><td class='num'>$2,621</td><td>Jul 07, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA1</td><td class='mono'>S-1113</td><td class='num'>571</td><td class='num'>$2,691</td><td>Jun 20, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA1</td><td class='mono'>S-1315</td><td class='num'>571</td><td class='num'>$2,731</td><td>May 23, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA1</td><td class='mono'>S-1415</td><td class='num'>571</td><td class='num'>$2,741</td><td>Jul 06, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA2</td><td class='mono'>S-0803</td><td class='num'>613</td><td class='num'>$2,706</td><td>Jun 03, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA2</td><td class='mono'>S-0903</td><td class='num'>613</td><td class='num'>$2,716</td><td>Jul 02, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA3</td><td class='mono'>S-1005</td><td class='num'>642</td><td class='num'>$2,761</td><td>May 10, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>JA3</td><td class='mono'>S-1205</td><td class='num'>642</td><td class='num'>$2,781</td><td>Aug 21, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S1</td><td class='mono'>S-1214</td><td class='num'>417</td><td class='num'>$2,265</td><td>May 27, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>N-0514</td><td class='num'>487</td><td class='num'>$2,405</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>N-0702</td><td class='num'>487</td><td class='num'>$2,455</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>N-1114</td><td class='num'>487</td><td class='num'>$2,475</td><td>May 09, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>N-1117</td><td class='num'>487</td><td class='num'>$2,475</td><td>Jun 01, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>N-1210</td><td class='num'>487</td><td class='num'>$2,510</td><td>Aug 02, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>S-0910</td><td class='num'>487</td><td class='num'>$2,455</td><td>Jun 20, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>S-1009</td><td class='num'>487</td><td class='num'>$2,465</td><td>Jun 28, 2026</td><td class='concession-cell'></td></tr><tr><td>Studio</td><td>S2</td><td class='mono'>S-1410</td><td class='num'>487</td><td class='num'>$2,505</td><td>Jun 25, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>A1</td><td class='mono'>N-1113</td><td class='num'>596</td><td class='num'>$2,719</td><td>Aug 07, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>A12</td><td class='mono'>N-1118</td><td class='num'>811</td><td class='num'>$3,204</td><td>Jul 21, 2026</td><td class='concession-cell'></td></tr><tr><td>1 BR</td><td>A6</td><td class='mono'>S-1211</td><td class='num'>679</td><td class='num'>$2,919</td><td>Jul 07, 2026</td><td class='concession-cell'></td></tr><tr><td>2 BR</td><td>B5</td><td class='mono'>S-1302</td><td class='num'>1,168</td><td class='num'>$4,379</td><td>Jul 26, 2026</td><td class='concession-cell'></td></tr></tbody>
       </table>
     </div>
   </div>

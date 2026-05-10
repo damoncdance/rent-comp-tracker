@@ -41,6 +41,10 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
     # Build floor plan lookup
     fp_lookup: dict[str, dict] = {}
     for fp in raw_fps:
+        # Some properties return name as {"name":"A1","provider_id":"..."} instead of a string
+        raw_name = fp.get("name", "")
+        if isinstance(raw_name, dict):
+            fp["name"] = raw_name.get("name", "")
         fp_lookup[str(fp["id"])] = fp
 
     # Normalize units

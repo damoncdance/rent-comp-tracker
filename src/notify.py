@@ -723,6 +723,9 @@ def _html_multi_template(prop_results: list[dict], subject: str,
         <tbody>{summary_rows}</tbody>
       </table>
     </td></tr>
+    <tr><td style="padding:8px 28px 20px 28px;text-align:center;">
+      <a href="{_e(_dashboard_url())}" style="display:inline-block;background:#7c6bf1;color:#fff;padding:10px 24px;border-radius:5px;font-size:13px;font-weight:600;text-decoration:none;">View Live Dashboard</a>
+    </td></tr>
     <tr><td style="padding:0 28px 24px 28px;">
       <h3 style="margin:0 0 10px 0;font-size:14px;color:#1a1a1a;">Changes</h3>
       {change_sections}{no_changes_msg}
