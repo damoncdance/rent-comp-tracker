@@ -269,7 +269,7 @@
       <span class="sep">/</span>
       <span>Luxury Living Chicago Realty</span>
       <span class="sep">/</span>
-      <span>Snap #70 — May 10, 2026 02:28 UTC</span>
+      <span>Snap #83 — May 10, 2026 02:50 UTC</span>
     </div>
   </div>
 </header>
@@ -281,10 +281,12 @@
 
 <div id="tab-availability" class="tab-panel active">
 <div class="grid">
-  <div class="card span-3 stat-card"><div class="label">Units Avail</div><div class="stat">6</div></div>
-  <div class="card span-3 stat-card"><div class="label">Avg Rent</div><div class="stat">$2,410</div></div>
-  <div class="card span-3 stat-card"><div class="label">Avg Rent PSF</div><div class="stat">$3.86</div></div>
-  <div class="card span-3 stat-card"><div class="label">Exposure</div><div class="stat">5.7%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Leased</div><div class="stat">97.1%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Exposure</div><div class="stat">5.7%</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Units Avail</div><div class="stat">6</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Vacant</div><div class="stat">3</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent</div><div class="stat">$2,410</div></div>
+  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent PSF</div><div class="stat">$3.86</div></div>
 
   <div class="card span-4">
     <h2>Unit Mix</h2>
@@ -349,14 +351,14 @@ new Chart(document.getElementById('mixChart'), {
   options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: '#8a8f98' } } } }
 });
 
-const timeline = [{"t": "2026-05-09T17:28:46.280089+00:00", "count": 6}, {"t": "2026-05-09T19:18:30.321222+00:00", "count": 6}, {"t": "2026-05-10T00:59:31.973013+00:00", "count": 6}, {"t": "2026-05-10T01:07:33.753926+00:00", "count": 6}, {"t": "2026-05-10T02:28:45.824158+00:00", "count": 6}];
+const timeline = [{"t": "2026-05-09T17:28:46.280089+00:00", "count": 6}, {"t": "2026-05-09T19:18:30.321222+00:00", "count": 6}, {"t": "2026-05-10T00:59:31.973013+00:00", "count": 6}, {"t": "2026-05-10T01:07:33.753926+00:00", "count": 6}, {"t": "2026-05-10T02:28:45.824158+00:00", "count": 6}, {"t": "2026-05-10T02:50:36.106837+00:00", "count": 6}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
   data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
   options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(48,54,61,0.6)' } } }, plugins: { legend: { display: false } } }
 });
 
-const rentSeries = [{"t": "2026-05-09T17:28:46.280089+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-09T19:18:30.321222+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T00:59:31.973013+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T01:07:33.753926+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T02:28:45.824158+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}];
+const rentSeries = [{"t": "2026-05-09T17:28:46.280089+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-09T19:18:30.321222+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T00:59:31.973013+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T01:07:33.753926+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T02:28:45.824158+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}, {"t": "2026-05-10T02:50:36.106837+00:00", "studio": 2125.0, "one_br": 2552.5, "two_br": null, "three_br": null}];
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
