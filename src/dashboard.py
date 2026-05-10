@@ -581,13 +581,23 @@ def _bed_stat_psf(p: dict, beds: int) -> str:
 def _build_rent_comps_cards(grid: list[dict]) -> str:
     """Build per-property detail cards like HelloData p16-17."""
     cards = []
+    today = datetime.now(timezone.utc).date()
     for i, p in enumerate(grid):
         is_subj = p.get("is_subject")
         badge = '<span class="badge badge-subject">Subject</span>' if is_subj else f'<span class="comp-num">{i}</span>'
         total = p.get("unit_count_total") or 0
         avail = p.get("unit_count") or 0
         exposure = round(avail / total * 100, 1) if total else 0
-        leased = round((1 - avail / total) * 100, 1) if total else 0
+
+        # Leased % uses 7-day vacancy threshold (consistent with overview tab)
+        avail_dates = p.get("avail_dates", [])
+        if total and avail_dates:
+            vacant = sum(1 for d in avail_dates if _is_vacant(d, today))
+            leased = round((total - vacant) / total * 100, 1)
+        elif total:
+            leased = round((1 - avail / total) * 100, 1)
+        else:
+            leased = 0
 
         # Per-bed rent table
         bed_rows = ""
