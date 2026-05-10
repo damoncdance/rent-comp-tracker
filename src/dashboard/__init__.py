@@ -85,7 +85,7 @@ def _render_overview() -> Path:
     rent_trend_json = _build_rent_trend_chart_data(rent_hist)
     # Count unique trend dates for sparse-data note
     _trend_dates = set(r["fetched_at"][:10] for r in rent_hist) if rent_hist else set()
-    _sparse_note = ('<p class="sparse-note">Data collecting — trends require 7+ days of snapshots for meaningful patterns.</p>'
+    _sparse_note = (f'<p class="sparse-note">{len(_trend_dates)} of 7 days collected</p>'
                     if len(_trend_dates) < 7 else '')
     concessions_table = _build_concessions_table(grid)
     fees_table = _build_fees_comparison_table(grid)
@@ -121,7 +121,7 @@ def _render_overview() -> Path:
   </div>
   <nav class="prop-nav" id="propNav">
     <button class="prop-nav-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="propNavMenu"
-      onclick="var n=document.getElementById('propNav'),open=n.classList.toggle('open');this.setAttribute('aria-expanded',open)">
+      onclick="var n=document.getElementById('propNav'),open=n.classList.toggle('open');this.setAttribute('aria-expanded',String(open))">
       Properties &#9660;
     </button>
     <div class="prop-nav-menu" id="propNavMenu" role="menu">
@@ -156,7 +156,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: By Unit Type -->
-<div id="tab-bytypes" class="tab-panel" role="tabpanel" aria-labelledby="btn-bytypes">
+<div id="tab-bytypes" class="tab-panel" role="tabpanel" aria-labelledby="btn-bytypes" aria-hidden="true">
 <div class="grid">
   {unit_type_metrics}
   <div class="card span-12">
@@ -170,7 +170,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Rent Comps -->
-<div id="tab-comps" class="tab-panel" role="tabpanel" aria-labelledby="btn-comps">
+<div id="tab-comps" class="tab-panel" role="tabpanel" aria-labelledby="btn-comps" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Rent Comps</h2>
@@ -181,7 +181,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Rankings -->
-<div id="tab-rankings" class="tab-panel" role="tabpanel" aria-labelledby="btn-rankings">
+<div id="tab-rankings" class="tab-panel" role="tabpanel" aria-labelledby="btn-rankings" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Property Rankings</h2>
@@ -195,7 +195,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Trends -->
-<div id="tab-trends" class="tab-panel" role="tabpanel" aria-labelledby="btn-trends">
+<div id="tab-trends" class="tab-panel" role="tabpanel" aria-labelledby="btn-trends" aria-hidden="true">
 {_sparse_note}
 <div class="grid">
   <div class="card span-12">
@@ -212,7 +212,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Concessions -->
-<div id="tab-concessions" class="tab-panel" role="tabpanel" aria-labelledby="btn-concessions">
+<div id="tab-concessions" class="tab-panel" role="tabpanel" aria-labelledby="btn-concessions" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Concessions</h2>
@@ -225,7 +225,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Fees -->
-<div id="tab-fees" class="tab-panel" role="tabpanel" aria-labelledby="btn-fees">
+<div id="tab-fees" class="tab-panel" role="tabpanel" aria-labelledby="btn-fees" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Fees</h2>
@@ -238,7 +238,7 @@ def _render_overview() -> Path:
 </div>
 
 <!-- TAB: Pricing -->
-<div id="tab-pricing" class="tab-panel" role="tabpanel" aria-labelledby="btn-pricing">
+<div id="tab-pricing" class="tab-panel" role="tabpanel" aria-labelledby="btn-pricing" aria-hidden="true">
 {pricing_html}
 </div>
 
@@ -272,12 +272,14 @@ document.addEventListener('keydown', function(e) {{
       t.setAttribute('aria-selected', 'false');
       t.setAttribute('tabindex', '-1');
     }});
-    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) {{ p.classList.remove('active'); }});
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) {{ p.classList.remove('active'); p.setAttribute('aria-hidden', 'true'); }});
     tab.classList.add('active');
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    var panel = document.getElementById('tab-' + tab.dataset.tab);
+    panel.classList.add('active');
+    panel.removeAttribute('aria-hidden');
   }}
   tabs.forEach(function(btn) {{ btn.addEventListener('click', function() {{ activate(btn); }}); }});
   /* Keyboard: Left/Right arrows, Home/End */
@@ -366,7 +368,7 @@ if (rentTrend.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 14, usePointStyle: true, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
       }}
     }}
   }});
@@ -391,7 +393,7 @@ if (exposure.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 14, usePointStyle: true, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
       }}
     }}
   }});
@@ -663,7 +665,7 @@ def _build_pricing_tab() -> str:
 
     table_html = f"""
   <div class="card span-12">
-    <h2>Pricing Recommendations — {_e(report.subject_name)}</h2>
+    <h2 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pricing — {_e(report.subject_name)}</h2>
     <p class="subtitle">{report.comp_count} comps analyzed &middot; Generated {_fmt_dt(report.generated_at)}</p>
     <div class="scroll scroll-wide">
       <table class="data-table" style="min-width:1100px;">

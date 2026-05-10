@@ -105,7 +105,7 @@
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
-    .prop-nav-menu { width:200px; right:-8px; }
+    .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }
   }
@@ -287,12 +287,12 @@
       <span class="sep">/</span>
       <span>13 properties</span>
       <span class="sep">/</span>
-      <span>May 10, 2026 14:01 UTC</span>
+      <span>May 10, 2026 14:13 UTC</span>
     </div>
   </div>
   <nav class="prop-nav" id="propNav">
     <button class="prop-nav-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="propNavMenu"
-      onclick="var n=document.getElementById('propNav'),open=n.classList.toggle('open');this.setAttribute('aria-expanded',open)">
+      onclick="var n=document.getElementById('propNav'),open=n.classList.toggle('open');this.setAttribute('aria-expanded',String(open))">
       Properties &#9660;
     </button>
     <div class="prop-nav-menu" id="propNavMenu" role="menu">
@@ -373,7 +373,7 @@
 </div>
 
 <!-- TAB: By Unit Type -->
-<div id="tab-bytypes" class="tab-panel" role="tabpanel" aria-labelledby="btn-bytypes">
+<div id="tab-bytypes" class="tab-panel" role="tabpanel" aria-labelledby="btn-bytypes" aria-hidden="true">
 <div class="grid">
   
   <div class="card span-3 metric-card">
@@ -437,7 +437,7 @@
 </div>
 
 <!-- TAB: Rent Comps -->
-<div id="tab-comps" class="tab-panel" role="tabpanel" aria-labelledby="btn-comps">
+<div id="tab-comps" class="tab-panel" role="tabpanel" aria-labelledby="btn-comps" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Rent Comps</h2>
@@ -746,7 +746,7 @@
 </div>
 
 <!-- TAB: Rankings -->
-<div id="tab-rankings" class="tab-panel" role="tabpanel" aria-labelledby="btn-rankings">
+<div id="tab-rankings" class="tab-panel" role="tabpanel" aria-labelledby="btn-rankings" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Property Rankings</h2>
@@ -760,8 +760,8 @@
 </div>
 
 <!-- TAB: Trends -->
-<div id="tab-trends" class="tab-panel" role="tabpanel" aria-labelledby="btn-trends">
-<p class="sparse-note">Data collecting — trends require 7+ days of snapshots for meaningful patterns.</p>
+<div id="tab-trends" class="tab-panel" role="tabpanel" aria-labelledby="btn-trends" aria-hidden="true">
+<p class="sparse-note">4 of 7 days collected</p>
 <div class="grid">
   <div class="card span-12">
     <h2>Historical Rent Trends</h2>
@@ -777,7 +777,7 @@
 </div>
 
 <!-- TAB: Concessions -->
-<div id="tab-concessions" class="tab-panel" role="tabpanel" aria-labelledby="btn-concessions">
+<div id="tab-concessions" class="tab-panel" role="tabpanel" aria-labelledby="btn-concessions" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Concessions</h2>
@@ -793,7 +793,7 @@
 </div>
 
 <!-- TAB: Fees -->
-<div id="tab-fees" class="tab-panel" role="tabpanel" aria-labelledby="btn-fees">
+<div id="tab-fees" class="tab-panel" role="tabpanel" aria-labelledby="btn-fees" aria-hidden="true">
 <div class="grid">
   <div class="card span-12">
     <h2>Fees</h2>
@@ -811,7 +811,7 @@
 </div>
 
 <!-- TAB: Pricing -->
-<div id="tab-pricing" class="tab-panel" role="tabpanel" aria-labelledby="btn-pricing">
+<div id="tab-pricing" class="tab-panel" role="tabpanel" aria-labelledby="btn-pricing" aria-hidden="true">
 
 <div class="grid">
   <div class="card span-3 stat-card">
@@ -846,8 +846,8 @@
   </div>
 <div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #58a6ff"><h3>Studio Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.72/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #3fb950"><h3>1 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.19/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #d29922"><h3>2 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.05/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #f85149"><h3>3 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.11/ft²</span></div></div></div>
   <div class="card span-12">
-    <h2>Pricing Recommendations — Inspire West Town</h2>
-    <p class="subtitle">12 comps analyzed &middot; Generated May 10, 2026 14:01 UTC</p>
+    <h2 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pricing — Inspire West Town</h2>
+    <p class="subtitle">12 comps analyzed &middot; Generated May 10, 2026 14:13 UTC</p>
     <div class="scroll scroll-wide">
       <table class="data-table" style="min-width:1100px;">
         <thead><tr>
@@ -904,12 +904,14 @@ document.addEventListener('keydown', function(e) {
       t.setAttribute('aria-selected', 'false');
       t.setAttribute('tabindex', '-1');
     });
-    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); p.setAttribute('aria-hidden', 'true'); });
     tab.classList.add('active');
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    var panel = document.getElementById('tab-' + tab.dataset.tab);
+    panel.classList.add('active');
+    panel.removeAttribute('aria-hidden');
   }
   tabs.forEach(function(btn) { btn.addEventListener('click', function() { activate(btn); }); });
   /* Keyboard: Left/Right arrows, Home/End */
@@ -937,7 +939,7 @@ Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,
 Chart.defaults.font.size = 11;
 
 /* Rankings charts */
-const rankings = {"studio": {"labels": ["812 West Adams", "Spoke Apartments", "Evo Union Park Apart", "1100 W Grand Ave", "Westerly", "Inspire West Town", "The Ardus", "Hugo River North", "The Jax", "Seven 10 West", "Nevele22"], "values": [2595, 2574, 2532, 2476, 2373, 2310, 2300, 2258, 2219, 2125, 2031], "colors": ["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#6e7681", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"]}, "one_br": {"labels": ["Evo Union Park Apart", "1100 W Grand Ave", "Spoke Apartments", "The Van Buren", "Hugo River North", "Westerly", "The Jax", "The Ardus", "812 West Adams", "Inspire West Town", "Seven 10 West"], "values": [2988, 2972, 2947, 2935, 2917, 2880, 2859, 2805, 2795, 2620, 2552], "colors": ["#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#6e7681", "#3fb950"]}, "two_br": {"labels": ["812 West Adams", "The Van Buren", "Spoke Apartments", "Evo Union Park Apart", "Westerly", "Hugo River North", "1100 W Grand Ave", "Inspire West Town", "Nevele22"], "values": [4495, 4413, 4379, 4325, 4252, 4228, 4003, 3814, 3620], "colors": ["#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#6e7681", "#d29922"]}, "three_br": {"labels": ["Hugo River North", "812 West Adams", "1100 W Grand Ave", "Nevele22"], "values": [6800, 5895, 5496, 4550], "colors": ["#f85149", "#f85149", "#f85149", "#f85149"]}};
+const rankings = {"studio": {"labels": ["812 West Adams", "Spoke Apartments", "Evo Union Park Apa\u2026", "1100 W Grand Ave", "Westerly", "Inspire West Town", "The Ardus", "Hugo River North", "The Jax", "Seven 10 West", "Nevele22"], "values": [2595, 2574, 2532, 2476, 2373, 2310, 2300, 2258, 2219, 2125, 2031], "colors": ["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#6e7681", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"]}, "one_br": {"labels": ["Evo Union Park Apa\u2026", "1100 W Grand Ave", "Spoke Apartments", "The Van Buren", "Hugo River North", "Westerly", "The Jax", "The Ardus", "812 West Adams", "Inspire West Town", "Seven 10 West"], "values": [2988, 2972, 2947, 2935, 2917, 2880, 2859, 2805, 2795, 2620, 2552], "colors": ["#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#3fb950", "#6e7681", "#3fb950"]}, "two_br": {"labels": ["812 West Adams", "The Van Buren", "Spoke Apartments", "Evo Union Park Apa\u2026", "Westerly", "Hugo River North", "1100 W Grand Ave", "Inspire West Town", "Nevele22"], "values": [4495, 4413, 4379, 4325, 4252, 4228, 4003, 3814, 3620], "colors": ["#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#d29922", "#6e7681", "#d29922"]}, "three_br": {"labels": ["Hugo River North", "812 West Adams", "1100 W Grand Ave", "Nevele22"], "values": [6800, 5895, 5496, 4550], "colors": ["#f85149", "#f85149", "#f85149", "#f85149"]}};
 function makeRankChart(canvasId, data) {
   if (!data || data.labels.length === 0) return;
   new Chart(document.getElementById(canvasId), {
@@ -998,7 +1000,7 @@ if (rentTrend.datasets.length > 0) {
         }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: C_MUTED } }
+        legend: { position: 'bottom', labels: { boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: { size: 10 }, color: C_MUTED } }
       }
     }
   });
@@ -1023,7 +1025,7 @@ if (exposure.datasets.length > 0) {
         }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 10 }, color: C_MUTED } }
+        legend: { position: 'bottom', labels: { boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: { size: 10 }, color: C_MUTED } }
       }
     }
   });

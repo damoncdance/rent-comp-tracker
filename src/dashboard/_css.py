@@ -102,7 +102,7 @@ def css() -> str:
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
-    .prop-nav-menu { width:200px; right:-8px; }
+    .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }
   }

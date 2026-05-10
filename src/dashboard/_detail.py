@@ -192,7 +192,7 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 </div>
 </div>
 
-<div id="tab-dfees" class="tab-panel" role="tabpanel" aria-labelledby="btn-dfees">
+<div id="tab-dfees" class="tab-panel" role="tabpanel" aria-labelledby="btn-dfees" aria-hidden="true">
 <div class="grid">{fees_html}</div>
 </div>
 
@@ -206,12 +206,14 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
       t.setAttribute('aria-selected', 'false');
       t.setAttribute('tabindex', '-1');
     }});
-    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) {{ p.classList.remove('active'); }});
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) {{ p.classList.remove('active'); p.setAttribute('aria-hidden', 'true'); }});
     tab.classList.add('active');
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    var panel = document.getElementById('tab-' + tab.dataset.tab);
+    panel.classList.add('active');
+    panel.removeAttribute('aria-hidden');
   }}
   tabs.forEach(function(btn) {{ btn.addEventListener('click', function() {{ activate(btn); }}); }});
   tabs.forEach(function(btn) {{

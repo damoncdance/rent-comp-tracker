@@ -105,7 +105,7 @@
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
-    .prop-nav-menu { width:200px; right:-8px; }
+    .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }
   }
@@ -343,7 +343,7 @@
 </div>
 </div>
 
-<div id="tab-dfees" class="tab-panel" role="tabpanel" aria-labelledby="btn-dfees">
+<div id="tab-dfees" class="tab-panel" role="tabpanel" aria-labelledby="btn-dfees" aria-hidden="true">
 <div class="grid"><div class="card span-6"><h2>Application &amp; Admin</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody><tr><td>Application fee</td><td class='num'>$75</td><td class='note'>Per applicant</td></tr><tr><td>Administration fee</td><td class='num'>$400</td><td class='note'></td></tr></tbody></table></div></div>
 <div class="card span-6"><h2>Pets</h2><div class="scroll"><table class="data-table"><thead><tr><th>Fee</th><th class="num">Amount</th></tr></thead><tbody><tr><td>Pet deposit</td><td class='num'>$250 cat / $400 dog</td></tr></tbody></table></div></div></div>
 </div>
@@ -358,12 +358,14 @@
       t.setAttribute('aria-selected', 'false');
       t.setAttribute('tabindex', '-1');
     });
-    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('[role="tabpanel"]').forEach(function(p) { p.classList.remove('active'); p.setAttribute('aria-hidden', 'true'); });
     tab.classList.add('active');
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    var panel = document.getElementById('tab-' + tab.dataset.tab);
+    panel.classList.add('active');
+    panel.removeAttribute('aria-hidden');
   }
   tabs.forEach(function(btn) { btn.addEventListener('click', function() { activate(btn); }); });
   tabs.forEach(function(btn) {

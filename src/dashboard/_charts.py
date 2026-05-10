@@ -27,7 +27,7 @@ def build_rankings_data(grid: list[dict]) -> str:
             subject_color = '#6e7681'
             bed_color = BED_COLORS.get(beds, '#58a6ff')
             result[key] = {
-                "labels": [i["name"][:20] for i in items],
+                "labels": [i["name"][:18] + "\u2026" if len(i["name"]) > 18 else i["name"] for i in items],
                 "values": [i["rent"] for i in items],
                 "colors": [subject_color if i["is_subject"] else bed_color for i in items],
             }
