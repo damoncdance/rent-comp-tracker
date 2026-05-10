@@ -1083,13 +1083,9 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
     avail = snap.get("unit_count") or 0
     exposure = round(avail / total * 100, 1) if total else 0
 
-    # Leased %: vacant = units with availability date on or before today
+    # Leased %: vacant = units available within 7 days (likely unoccupied)
     today = datetime.now(timezone.utc).date()
-    vacant_count = 0
-    for u in units:
-        avail_date = _parse_avail_date(u.get("available_date", ""))
-        if avail_date and avail_date <= today:
-            vacant_count += 1
+    vacant_count = sum(1 for u in units if _is_vacant(u.get("available_date", ""), today))
     leased_pct = round((total - vacant_count) / total * 100, 1) if total else 0
 
     # Bed type breakdown
@@ -1677,10 +1673,15 @@ def _fmt_date(iso: str) -> str:
         return iso[:10] if iso else ""
 
 
+_VACANT_THRESHOLD_DAYS = 7
+
+
 def _is_vacant(raw_date: str, today: date) -> bool:
-    """Return True if the unit's availability date is on or before today."""
+    """Return True if the unit's availability date is within 7 days of today."""
     d = _parse_avail_date(raw_date)
-    return d is not None and d <= today
+    if d is None:
+        return False
+    return (d - today).days <= _VACANT_THRESHOLD_DAYS
 
 
 def _parse_avail_date(raw: str) -> date | None:
