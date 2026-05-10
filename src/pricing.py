@@ -295,6 +295,12 @@ def _generate_recommendations_impl() -> PricingReport | None:
         else:
             pressure_adj = 1.0
 
+        # Size adjustment: discount when subject units are smaller than
+        # comp average for the same bed type (e.g. IWT 2BRs at 830 sqft
+        # vs comp avg ~1,020 sqft).  Smaller units command lower PSF
+        # because renters perceive less value even at the same $/ft².
+        size_adj = _size_adjustment(sqft, beds, all_comp_units)
+
         # Unit-level adjustments
         unit_adj = _unit_level_adjustment(u)
 
@@ -302,7 +308,7 @@ def _generate_recommendations_impl() -> PricingReport | None:
         conc_adj = _concession_adjustment(all_comp_units, beds, u)
 
         # Compute recommended
-        adj_psf = m_psf * quality_adj * amenity_adj * pressure_adj * unit_adj * conc_adj
+        adj_psf = m_psf * quality_adj * amenity_adj * pressure_adj * size_adj * unit_adj * conc_adj
         recommended = round(adj_psf * sqft)
 
         # Confidence band
@@ -342,6 +348,7 @@ def _generate_recommendations_impl() -> PricingReport | None:
                 "quality": round(quality_adj, 3),
                 "amenity": round(amenity_adj, 3),
                 "pressure": round(pressure_adj, 3),
+                "size": round(size_adj, 3),
                 "unit": round(unit_adj, 3),
                 "concession": round(conc_adj, 3),
             },
@@ -492,6 +499,37 @@ def _amenity_count(am: dict) -> int:
     if am.get("rooftop"):
         count += 1
     return count
+
+
+def _size_adjustment(sqft: int, beds: int, comp_units: list[dict]) -> float:
+    """Adjust for units that are materially smaller than the comp average.
+
+    Renters shopping a bed type compare total space, not just PSF.  A 2BR
+    at 830 sqft competes differently than one at 1,020 sqft — the smaller
+    unit must price at a lower PSF to hit a palatable gross rent.
+
+    Methodology: -1% for every 5% the unit is below the comp-set average
+    sqft for that bed type.  No bonus for being larger (captured by PSF).
+    Capped at -10%.
+    """
+    bed_comps = [u for u in comp_units if u["beds"] == beds and u["sqft"] and u["sqft"] > 0]
+    if not bed_comps:
+        return 1.0
+
+    comp_avg_sqft = statistics.mean(u["sqft"] for u in bed_comps)
+    if comp_avg_sqft <= 0:
+        return 1.0
+
+    pct_below = (comp_avg_sqft - sqft) / comp_avg_sqft
+
+    if pct_below <= 0:
+        # Unit is at or above comp average — no adjustment
+        return 1.0
+
+    # -1% for every 5% below average (i.e., -0.2 × pct_below)
+    discount = pct_below * 0.20
+    adj = 1.0 - discount
+    return max(0.90, round(adj, 3))
 
 
 def _unit_level_adjustment(unit: dict) -> float:
