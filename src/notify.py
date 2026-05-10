@@ -482,7 +482,7 @@ def _build_failure_digest_single(r: dict) -> tuple[str, str, str]:
         status_color="#cf222e",
         total="—",
         delta="",
-        mix_html=f"<div style='color:#666'>HTTP {http} — {_e(reason)}</div>",
+        mix_html=f"<div style='color:#666'>HTTP {_e(http)} — {_e(reason)}</div>",
         rent_range="—",
         avg_rent="—",
         changes_html="<p style='color:#666;margin:0'>If failures continue, see the "
@@ -834,7 +834,7 @@ def _html_changes(events) -> str:
             nv = json.loads(e["new_value"]) if e["new_value"] else ""
             badge = ('<span style="background:#fff8c5;color:#9a6700;padding:2px 6px;'
                      'border-radius:3px;font-size:11px;font-weight:600;">date</span>')
-            detail = f"{(ov or '')[:10]} -> {(nv or '')[:10]}"
+            detail = f"{_e((ov or '')[:10])} -> {_e((nv or '')[:10])}"
         else:
             badge = f'<span style="font-size:11px;">{_e(et)}</span>'
             detail = ""
