@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from pathlib import Path
 
 # --- Paths ------------------------------------------------------------------
@@ -23,51 +22,37 @@ PROPERTY_NAME = "Aberdeen Crossing"
 PROPERTY_URL  = "https://www.aberdeencrossingapts.com/floorplans"
 
 
-# --- Property registry (reads from DB) --------------------------------------
-
-def _connect() -> sqlite3.Connection:
-    """Open a read-only DB connection with row_factory and foreign_keys."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
-
+# --- Property registry (reads from DB via storage.db()) ---------------------
 
 def get_active_properties() -> list[dict]:
     """Return all active properties as dicts, ordered by is_subject DESC then name."""
-    conn = _connect()
-    try:
+    from src.storage import db
+    with db() as conn:
         rows = conn.execute(
             "SELECT * FROM properties WHERE active = 1 "
             "ORDER BY is_subject DESC, name"
         ).fetchall()
         return [dict(r) for r in rows]
-    finally:
-        conn.close()
 
 
 def get_property(slug: str) -> dict | None:
     """Return a single property by slug, or None."""
-    conn = _connect()
-    try:
+    from src.storage import db
+    with db() as conn:
         row = conn.execute(
             "SELECT * FROM properties WHERE slug = ?", (slug,)
         ).fetchone()
         return dict(row) if row else None
-    finally:
-        conn.close()
 
 
 def get_property_by_id(property_id: int) -> dict | None:
     """Return a single property by id, or None."""
-    conn = _connect()
-    try:
+    from src.storage import db
+    with db() as conn:
         row = conn.execute(
             "SELECT * FROM properties WHERE id = ?", (property_id,)
         ).fetchone()
         return dict(row) if row else None
-    finally:
-        conn.close()
 
 # --- HTTP -------------------------------------------------------------------
 
