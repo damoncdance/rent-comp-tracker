@@ -60,7 +60,9 @@ def _bed_label(beds: int) -> str:
 
 
 def _slugify(name: str) -> str:
-    return name.replace(" ", "_").replace("—", "-")
+    import re
+    slug = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
+    return slug.strip().replace(" ", "_")
 
 
 def _apply_header_row(ws, row: int, values: list[str]) -> None:

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html as html_mod
 import json
+import re
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -84,7 +85,7 @@ def _render_overview() -> Path:
 
     # Property nav links for sidebar
     nav_links = "".join(
-        f'<a href="{_e(p["slug"])}/" class="nav-link{" subject" if p.get("is_subject") else ""}">'
+        f'<a href="{_e(_safe_slug(p["slug"]))}/index.html" class="nav-link{" subject" if p.get("is_subject") else ""}">'
         f'{_e(p["name"])}</a>'
         for p in grid
     )
@@ -110,6 +111,14 @@ def _render_overview() -> Path:
       <span>{generated}</span>
     </div>
   </div>
+  <nav class="prop-nav" id="propNav">
+    <button class="prop-nav-toggle" onclick="document.getElementById('propNav').classList.toggle('open')">
+      Properties &#9660;
+    </button>
+    <div class="prop-nav-menu">
+      {nav_links}
+    </div>
+  </nav>
 </header>
 
 <div class="tabs">
@@ -223,13 +232,13 @@ def _render_overview() -> Path:
 {pricing_html}
 </div>
 
-<!-- Property Navigation -->
-<nav class="prop-nav">
-  <h3>Properties</h3>
-  {nav_links}
-</nav>
-
 <script>
+/* Close property dropdown on outside click */
+document.addEventListener('click', function(e) {{
+  var nav = document.getElementById('propNav');
+  if (nav && !nav.contains(e.target)) nav.classList.remove('open');
+}});
+
 /* Tab switching */
 document.querySelectorAll('.tab').forEach(function(btn) {{
   btn.addEventListener('click', function() {{
@@ -1033,7 +1042,7 @@ def _render_property_detail(prop: dict) -> Path:
     else:
         html = _detail_full_html(prop, snap_id)
 
-    out_dir = DASHBOARD_DIR / slug
+    out_dir = DASHBOARD_DIR / _safe_slug(slug)
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "index.html"
     out.write_text(html, encoding="utf-8")
@@ -1066,6 +1075,8 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 
     rents = [u["min_rent"] for u in units]
     avg_rent = sum(rents) / len(rents) if rents else 0
+    psf_pairs = [(u["min_rent"], u["sqft"]) for u in units if u["sqft"] and u["min_rent"]]
+    avg_psf = sum(r / s for r, s in psf_pairs) / len(psf_pairs) if psf_pairs else 0
 
     # Unit table
     bed_label = lambda b: "Studio" if b == 0 else f"{b} BR"
@@ -1132,7 +1143,7 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 <body>
 <header>
   <div class="header-left">
-    <a href="../" class="back-link">&larr; Comp Set Overview</a>
+    <a href="../index.html" class="back-link">&larr; Comp Set Overview</a>
     <h1>{_e(prop_name)}</h1>
     <div class="meta">
       <span>{_e(prop.get("address", ""))}</span>
@@ -1153,8 +1164,8 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 <div class="grid">
   <div class="card span-3 stat-card"><div class="label">Units Avail</div><div class="stat">{avail}</div></div>
   <div class="card span-3 stat-card"><div class="label">Avg Rent</div><div class="stat">${avg_rent:,.0f}</div></div>
+  <div class="card span-3 stat-card"><div class="label">Avg Rent PSF</div><div class="stat">${avg_psf:.2f}</div></div>
   <div class="card span-3 stat-card"><div class="label">Exposure</div><div class="stat">{exposure}%</div></div>
-  <div class="card span-3 stat-card"><div class="label">Total Units</div><div class="stat">{total}</div></div>
 
   <div class="card span-4">
     <h2>Unit Mix</h2>
@@ -1441,8 +1452,31 @@ def _css() -> str:
   @media (max-width:960px) {
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); }
   }
-  @media (max-width:520px) { .span-3 { grid-column:span 12; } }
+  @media (max-width:520px) {
+    .span-3 { grid-column:span 6; }
+    body { font-size:12px; padding:0 8px 32px; }
+    header { padding:12px 0 0; gap:10px; }
+    h1 { font-size:16px; }
+    .meta { font-size:11px; }
+    .tabs { padding-top:6px; -webkit-overflow-scrolling:touch; }
+    .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
+    .grid { gap:6px; margin-top:8px; }
+    .card { padding:10px 12px; }
+    .stat { font-size:18px; }
+    .stat-card { min-height:56px; }
+    .chart-wrap { height:180px; }
+    .chart-tall { height:240px; }
+    .chart-wide { height:220px; }
+    .scroll { max-height:min(400px,50vh); }
+    th,td { padding:5px 6px; font-size:11px; }
+    .comp-table th,.comp-table td { min-width:80px; font-size:11px; }
+    .comp-table .row-label { min-width:100px; font-size:10px; }
+    .comp-stats { grid-template-columns:repeat(3,1fr); gap:4px; padding:6px; }
+    .comp-name { font-size:13px; }
+    .prop-nav-menu { width:200px; right:-8px; }
+  }
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
@@ -1563,26 +1597,32 @@ def _css() -> str:
   }
   .metric-row span:last-child { font-weight:600; color:var(--fg-strong); }
 
-  /* Property nav */
+  /* Property nav dropdown */
   .prop-nav {
-    position:fixed; top:80px; right:clamp(8px,2vw,20px);
+    position:relative; display:inline-block;
+  }
+  .prop-nav-toggle {
+    background:var(--card); border:1px solid var(--line); border-radius:4px;
+    padding:6px 12px; font-size:11px; font-weight:600; color:var(--fg);
+    cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;
+  }
+  .prop-nav-toggle:hover { border-color:var(--accent); color:var(--fg-strong); }
+  .prop-nav-toggle .arrow { font-size:9px; transition:transform 0.2s; }
+  .prop-nav.open .prop-nav-toggle .arrow { transform:rotate(180deg); }
+  .prop-nav-menu {
+    display:none; position:absolute; top:100%; right:0; margin-top:4px;
     background:var(--card); border:1px solid var(--line); border-radius:6px;
-    padding:12px; width:180px; max-height:calc(100vh - 120px); overflow-y:auto;
-    z-index:10;
+    padding:8px; width:220px; max-height:calc(100vh - 120px); overflow-y:auto;
+    z-index:20; box-shadow:0 8px 24px rgba(0,0,0,0.4);
   }
-  .prop-nav h3 {
-    font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.06em; margin-bottom:8px;
-  }
+  .prop-nav.open .prop-nav-menu { display:block; }
   .nav-link {
-    display:block; padding:4px 8px; font-size:11px; color:var(--fg);
-    text-decoration:none; border-radius:3px; margin-bottom:2px;
+    display:block; padding:5px 10px; font-size:11px; color:var(--fg);
+    text-decoration:none; border-radius:3px; margin-bottom:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .nav-link:hover { background:var(--accent-soft); color:var(--fg-strong); }
   .nav-link.subject { color:var(--accent); font-weight:600; }
-
-  @media (max-width:1200px) { .prop-nav { display:none; } }
 
   /* Disclaimer */
   .disclaimer {
@@ -1609,6 +1649,16 @@ def _fmt_date(iso: str) -> str:
         return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%b %d, %Y")
     except Exception:
         return iso[:10] if iso else ""
+
+
+_SAFE_SLUG_RE = re.compile(r'^[a-z0-9][a-z0-9-]*$')
+
+
+def _safe_slug(slug: str) -> str:
+    """Validate and return a slug safe for filesystem paths. Raises ValueError if unsafe."""
+    if not slug or not _SAFE_SLUG_RE.match(slug):
+        raise ValueError(f"Unsafe slug rejected: {slug!r}")
+    return slug
 
 
 def _e(s) -> str:
