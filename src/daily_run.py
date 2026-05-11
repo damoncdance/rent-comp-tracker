@@ -16,6 +16,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timezone
+from pathlib import Path
 
 from src.changes import diff_snapshots
 from src.config import get_active_properties
@@ -120,7 +121,12 @@ def _run_one_property(prop: dict, log, verbose: bool = False) -> tuple[int | Non
         return snap_id, False
 
     # Store
-    snap_id = write_snapshot_success(prop_id, units, floorplans, http_status=http_status)
+    raw_html_path = Path(f"data/raw/{slug}/{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.html")
+    snap_id = write_snapshot_success(
+        prop_id, units, floorplans,
+        http_status=http_status,
+        raw_html_path=raw_html_path if raw_html_path.exists() else None,
+    )
     log(f"  Snapshot id={snap_id} written")
 
     # Diff

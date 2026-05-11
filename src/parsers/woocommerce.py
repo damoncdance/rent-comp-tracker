@@ -13,6 +13,7 @@ The property URL in the DB should be the WC Store API endpoint directly.
 from __future__ import annotations
 
 import json
+from datetime import date
 import re
 from collections import defaultdict
 from html import unescape
@@ -82,8 +83,12 @@ def parse_all(response_text: str) -> tuple[list[dict], list[dict]]:
         if date_match:
             parts = date_match.group(1).split("/")
             if len(parts) == 2:
-                # Assume current/next year
-                avail_date = f"2026-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
+                month, day = int(parts[0]), int(parts[1])
+                year = date.today().year
+                # If the date is in the past, assume next year
+                if date(year, month, day) < date.today():
+                    year += 1
+                avail_date = f"{year}-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
         elif re.search(r"available\s*now", price_html, re.IGNORECASE):
             avail_date = "now"
 

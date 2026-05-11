@@ -73,15 +73,21 @@ jobs:
           # xvfb-run provides a virtual display for Playwright headed mode
           # (needed to bypass Cloudflare on SecureCafe properties).
           #
-          # || true: The daily run exits non-zero when any property fails to
-          # fetch, but partial failures are expected (sites go down, Cloudflare
-          # blocks, etc). We want the workflow to stay green and continue to
-          # commit whatever data we did collect, deploy the dashboard, and
-          # push. Failure visibility comes from the email digest (sent by
-          # notify.py even on failures) and per-property fetch_status in the DB.
-          xvfb-run python -m src.daily_run --verbose 2>&1 | tee /tmp/daily_run.log || true
-          # Always set dashboard-ready so Pages deploys even when some
-          # properties fail to fetch.
+          # Exit codes from daily_run:
+          #   0 = all properties succeeded
+          #   1 = partial failures (expected — sites go down, Cloudflare blocks)
+          #   2 = unexpected system error (should fail the workflow)
+          #
+          # We continue on exit 1 (partial failures) so we can commit whatever
+          # data we did collect, deploy the dashboard, and push. Failure
+          # visibility comes from the email digest and per-property fetch_status.
+          # Exit 2 (system crash) fails the workflow so we get a GitHub alert.
+          xvfb-run python -m src.daily_run --verbose 2>&1 | tee /tmp/daily_run.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ "$EXIT_CODE" -ge 2 ]; then
+            echo "::error::daily_run crashed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
           echo "dashboard-ready=true" >> $GITHUB_OUTPUT
 
       - name: Annotate failures (if any)
