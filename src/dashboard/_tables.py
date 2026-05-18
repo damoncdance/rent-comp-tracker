@@ -12,7 +12,8 @@ from src.fees import FEES
 # OVERVIEW TABLE (HelloData p2 style)
 # ===========================================================================
 
-def build_overview_table(grid: list[dict]) -> str:
+def build_overview_table(grid: list[dict], dom_data: dict | None = None,
+                         velocity_data: dict | None = None) -> str:
     """Build the side-by-side comp overview table."""
     # Header row with property names
     headers = '<th class="row-label"></th>'
@@ -77,6 +78,28 @@ def build_overview_table(grid: list[dict]) -> str:
         if total and avail is not None:
             exp = round(avail / total * 100, 1)
             r += f'<td{cls}>{exp}%</td>'
+        else:
+            r += f'<td{cls}>—</td>'
+    rows.append(r)
+
+    # Days on Market
+    r = '<td class="row-label">Avg Days on Mkt</td>'
+    for p in grid:
+        cls = ' class="subject-col"' if p.get("is_subject") else ''
+        dom = (dom_data or {}).get(p.get("id"), {})
+        avg = dom.get("avg_dom")
+        r += f'<td{cls}>{avg:.0f}d</td>' if avg is not None else f'<td{cls}>—</td>'
+    rows.append(r)
+
+    # Leasing Velocity (7-day)
+    r = '<td class="row-label">Leased (7d)</td>'
+    for p in grid:
+        cls = ' class="subject-col"' if p.get("is_subject") else ''
+        vel = (velocity_data or {}).get(p.get("id"), {})
+        leased = vel.get("units_leased", 0)
+        absorb = vel.get("absorption_pct", 0)
+        if leased:
+            r += f'<td{cls}>{leased} ({absorb}%)</td>'
         else:
             r += f'<td{cls}>—</td>'
     rows.append(r)
@@ -232,7 +255,9 @@ def _bed_stat_psf(p: dict, beds: int) -> str:
 # RENTS BY UNIT TYPE TABLE (HelloData p19)
 # ===========================================================================
 
-def build_rents_by_unit_type_table(rents: list[dict]) -> str:
+def build_rents_by_unit_type_table(rents: list[dict],
+                                   dom_data: dict | None = None,
+                                   velocity_data: dict | None = None) -> str:
     """Build the cross-property rent comparison table."""
     rows = ""
     for r in rents:
@@ -240,9 +265,16 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
         cls = ' class="subject-row"' if is_subj else ''
         name = e(r["name"])
         active = r.get("active_units", 0)
+        pid = r.get("id")
+
+        # DOM and velocity for this property
+        dom = (dom_data or {}).get(pid, {})
+        vel = (velocity_data or {}).get(pid, {})
+        avg_dom = dom.get("avg_dom")
+        leased_7d = vel.get("units_leased", 0)
 
         if active == 0:
-            rows += f'<tr{cls}><td>{name}</td><td class="num">0</td>' + '<td class="num">—</td>' * 5 + '</tr>'
+            rows += f'<tr{cls}><td>{name}</td><td class="num">0</td>' + '<td class="num">—</td>' * 7 + '</tr>'
             continue
 
         min_r = r.get("min_rent", 0) or 0
@@ -250,6 +282,8 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
         max_r = r.get("max_rent", 0) or 0
         avg_sf = r.get("avg_sqft", 0) or 0
         avg_psf = r.get("avg_psf", 0) or 0
+        dom_str = f'{avg_dom:.0f}d' if avg_dom is not None else '—'
+        vel_str = str(leased_7d) if leased_7d else '—'
 
         rows += (
             f'<tr{cls}>'
@@ -260,6 +294,8 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
             f'<td class="num">${max_r:,.0f}</td>'
             f'<td class="num">{avg_sf:,.0f} ft²</td>'
             f'<td class="num">${avg_psf:.2f}/ft²</td>'
+            f'<td class="num">{dom_str}</td>'
+            f'<td class="num">{vel_str}</td>'
             f'</tr>'
         )
 
@@ -272,6 +308,22 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
         avg_max = sum(r.get("max_rent", 0) or 0 for r in comp_rents) / len(comp_rents)
         avg_sqft = sum(r.get("avg_sqft", 0) or 0 for r in comp_rents) / len(comp_rents)
         avg_psf = avg_rent / avg_sqft if avg_sqft else 0
+
+        # Average DOM across comps
+        comp_doms = [
+            (dom_data or {}).get(r.get("id"), {}).get("avg_dom")
+            for r in comp_rents
+        ]
+        comp_doms_valid = [d for d in comp_doms if d is not None]
+        avg_dom_str = f'{sum(comp_doms_valid)/len(comp_doms_valid):.0f}d' if comp_doms_valid else '—'
+
+        # Total leased across comps
+        comp_leased = sum(
+            (velocity_data or {}).get(r.get("id"), {}).get("units_leased", 0)
+            for r in comp_rents
+        )
+        vel_avg_str = str(comp_leased) if comp_leased else '—'
+
         rows += (
             f'<tr class="comp-avg-row">'
             f'<td><strong>Comp Average</strong></td>'
@@ -281,6 +333,8 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
             f'<td class="num">${avg_max:,.0f}</td>'
             f'<td class="num">{avg_sqft:,.0f} ft²</td>'
             f'<td class="num">${avg_psf:.2f}/ft²</td>'
+            f'<td class="num">{avg_dom_str}</td>'
+            f'<td class="num">{vel_avg_str}</td>'
             f'</tr>'
         )
 
@@ -289,6 +343,7 @@ def build_rents_by_unit_type_table(rents: list[dict]) -> str:
   <th>Property</th><th class="num"># Active</th>
   <th class="num">Min Rent</th><th class="num">Avg Rent</th><th class="num">Max Rent</th>
   <th class="num">Avg SqFt</th><th class="num">Avg PSF</th>
+  <th class="num">Avg DOM</th><th class="num">Leased 7d</th>
 </tr></thead>
 <tbody>{rows}</tbody>
 </table>"""

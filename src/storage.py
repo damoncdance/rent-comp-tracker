@@ -304,7 +304,7 @@ def rents_by_unit_type() -> list[dict]:
             sid = snap["sid"] if snap else None
             if not sid:
                 results.append({
-                    "name": p["name"], "slug": p["slug"],
+                    "id": p["id"], "name": p["name"], "slug": p["slug"],
                     "is_subject": p["is_subject"], "active_units": 0,
                 })
                 continue
@@ -323,7 +323,7 @@ def rents_by_unit_type() -> list[dict]:
                        if stats["avg_sqft"] and stats["avg_rent"] else None)
 
             results.append({
-                "name": p["name"], "slug": p["slug"],
+                "id": p["id"], "name": p["name"], "slug": p["slug"],
                 "is_subject": p["is_subject"],
                 "total_units": p["unit_count_total"],
                 "active_units": stats["cnt"],
@@ -382,6 +382,157 @@ def rent_history_by_property(limit: int = 90) -> list[dict]:
                ORDER BY s.fetched_at DESC
                LIMIT ?""",
             (limit * 12,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def days_on_market() -> dict[int, dict]:
+    """Compute average Days on Market for each active property.
+
+    For each currently-available unit, find the earliest snapshot where it
+    appeared.  DOM = days between that first-seen date and today.
+
+    Returns {property_id: {"avg_dom": float, "median_dom": float,
+                           "by_bed": {beds: avg_dom}}}.
+    """
+    from statistics import median
+
+    with db() as conn:
+        # For each active property, get the latest snapshot's units
+        props = conn.execute(
+            """SELECT p.id, MAX(s.id) AS snap_id
+               FROM properties p
+               JOIN snapshots s ON s.property_id = p.id
+               WHERE p.active = 1 AND s.fetch_status = 'success'
+               GROUP BY p.id"""
+        ).fetchall()
+
+        today = datetime.now(timezone.utc).date()
+        result: dict[int, dict] = {}
+
+        for p in props:
+            pid, snap_id = p["id"], p["snap_id"]
+            # Current available units
+            current_units = conn.execute(
+                "SELECT unit_code, beds FROM units WHERE snapshot_id = ?",
+                (snap_id,),
+            ).fetchall()
+
+            if not current_units:
+                result[pid] = {"avg_dom": None, "median_dom": None, "by_bed": {}}
+                continue
+
+            unit_codes = [u["unit_code"] for u in current_units]
+            beds_map = {u["unit_code"]: u["beds"] for u in current_units}
+
+            # Find earliest appearance of each unit_code in this property's snapshots
+            placeholders = ",".join("?" * len(unit_codes))
+            first_seen_rows = conn.execute(
+                f"""SELECT u.unit_code, MIN(s.fetched_at) AS first_seen
+                    FROM units u
+                    JOIN snapshots s ON s.id = u.snapshot_id
+                    WHERE s.property_id = ? AND s.fetch_status = 'success'
+                      AND u.unit_code IN ({placeholders})
+                    GROUP BY u.unit_code""",
+                (pid, *unit_codes),
+            ).fetchall()
+
+            doms: list[int] = []
+            doms_by_bed: dict[int, list[int]] = defaultdict(list)
+            for row in first_seen_rows:
+                first = datetime.fromisoformat(row["first_seen"]).date()
+                dom = (today - first).days
+                doms.append(dom)
+                beds = beds_map.get(row["unit_code"], 0)
+                doms_by_bed[beds].append(dom)
+
+            by_bed = {}
+            for beds, vals in sorted(doms_by_bed.items()):
+                by_bed[beds] = round(sum(vals) / len(vals), 1)
+
+            result[pid] = {
+                "avg_dom": round(sum(doms) / len(doms), 1) if doms else None,
+                "median_dom": round(median(doms), 1) if doms else None,
+                "by_bed": by_bed,
+            }
+        return result
+
+
+def leasing_velocity(days: int = 7) -> dict[int, dict]:
+    """Compute leasing velocity over a rolling window for each active property.
+
+    Counts unit_removed events (assumed leased) in the last N days.
+    Also computes weekly absorption rate = units_leased / available_at_start.
+
+    Returns {property_id: {"units_leased": int, "absorption_pct": float,
+                           "by_bed": {beds: units_leased}}}.
+    """
+    cutoff = (datetime.now(timezone.utc).date().__str__())  # YYYY-MM-DD
+
+    with db() as conn:
+        props = conn.execute(
+            "SELECT id, unit_count_total FROM properties WHERE active = 1"
+        ).fetchall()
+
+        result: dict[int, dict] = {}
+        for p in props:
+            pid = p["id"]
+            total = p["unit_count_total"] or 0
+
+            # Count unit_removed events in the window
+            removed = conn.execute(
+                """SELECT ce.unit_code, ce.old_value, ce.detected_at
+                   FROM change_events ce
+                   JOIN snapshots s ON s.id = ce.snapshot_id
+                   WHERE s.property_id = ?
+                     AND ce.event_type = 'unit_removed'
+                     AND DATE(ce.detected_at) >= DATE(?, '-' || ? || ' days')
+                   ORDER BY ce.detected_at DESC""",
+                (pid, cutoff, days),
+            ).fetchall()
+
+            units_leased = len(removed)
+
+            # Parse bed counts from old_value (unit data before removal)
+            by_bed: dict[int, int] = defaultdict(int)
+            for r in removed:
+                try:
+                    val = json.loads(r["old_value"]) if r["old_value"] else {}
+                    beds = val.get("beds", 0)
+                except (json.JSONDecodeError, TypeError):
+                    beds = 0
+                by_bed[beds] += 1
+
+            # Absorption = units leased / total units
+            absorption = round(units_leased / total * 100, 1) if total else 0.0
+
+            result[pid] = {
+                "units_leased": units_leased,
+                "absorption_pct": absorption,
+                "by_bed": dict(sorted(by_bed.items())),
+            }
+        return result
+
+
+def leasing_velocity_history(limit: int = 90) -> list[dict]:
+    """Per-property daily leasing events over time for trend charts.
+
+    Returns [{fetched_at, slug, name, units_leased, units_added}, ...].
+    Each row represents one day's change events for one property.
+    """
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT DATE(s.fetched_at) AS day, p.slug, p.name,
+                      SUM(CASE WHEN ce.event_type = 'unit_removed' THEN 1 ELSE 0 END) AS units_leased,
+                      SUM(CASE WHEN ce.event_type = 'unit_added' THEN 1 ELSE 0 END) AS units_added
+               FROM change_events ce
+               JOIN snapshots s ON s.id = ce.snapshot_id
+               JOIN properties p ON p.id = s.property_id
+               WHERE p.active = 1
+               GROUP BY day, p.id
+               ORDER BY day DESC
+               LIMIT ?""",
+            (limit * 14,),
         ).fetchall()
         return [dict(r) for r in rows]
 

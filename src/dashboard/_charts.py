@@ -69,6 +69,31 @@ def build_rent_trend_chart_data(rent_hist: list[dict]) -> str:
     return json_safe({"labels": labels, "datasets": datasets})
 
 
+def build_leasing_activity_chart_data(activity: list[dict]) -> str:
+    """Build Chart.js data for daily leasing activity (stacked bar)."""
+    by_prop: dict[str, list] = defaultdict(list)
+    all_dates = set()
+    for r in activity:
+        day = r["day"]
+        all_dates.add(day)
+        by_prop[r["name"]].append({"day": day, "leased": r["units_leased"]})
+
+    labels = sorted(all_dates)
+    datasets = []
+    for i, (name, points) in enumerate(sorted(by_prop.items())):
+        leased_by_date = {p["day"]: p["leased"] for p in points}
+        color = COLORS[i % len(COLORS)]
+        datasets.append({
+            "label": name,
+            "data": [leased_by_date.get(d, 0) for d in labels],
+            "backgroundColor": color,
+            "borderWidth": 0,
+            "borderRadius": 2,
+        })
+
+    return json_safe({"labels": labels, "datasets": datasets})
+
+
 def build_exposure_chart_data(exposure: list[dict]) -> str:
     """Build Chart.js data for exposure % over time."""
     by_prop: dict[str, list] = defaultdict(list)

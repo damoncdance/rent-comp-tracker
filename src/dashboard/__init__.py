@@ -24,7 +24,11 @@ from pathlib import Path
 
 from src.config import DASHBOARD_DIR, get_active_properties
 from src.pricing import generate_recommendations, signal_label, signal_color
-from src.storage import comp_grid_data, rents_by_unit_type, exposure_history, rent_history_by_property
+from src.storage import (
+    comp_grid_data, rents_by_unit_type, exposure_history,
+    rent_history_by_property, days_on_market, leasing_velocity,
+    leasing_velocity_history,
+)
 
 from src.dashboard._constants import BED_COLORS as _BED_COLORS, BED_LABELS as _BED_LABELS
 from src.dashboard._helpers import e as _e, json_safe as _json_safe, fmt_dt as _fmt_dt, safe_slug as _safe_slug, is_vacant as _is_vacant
@@ -41,6 +45,7 @@ from src.dashboard._charts import (
     build_rankings_data as _build_rankings_data,
     build_rent_trend_chart_data as _build_rent_trend_chart_data,
     build_exposure_chart_data as _build_exposure_chart_data,
+    build_leasing_activity_chart_data as _build_leasing_activity_chart_data,
 )
 
 
@@ -66,6 +71,9 @@ def _render_overview() -> Path:
     rents = rents_by_unit_type()
     exposure = exposure_history()
     rent_hist = rent_history_by_property()
+    dom_data = days_on_market()
+    vel_data = leasing_velocity()
+    leasing_hist = leasing_velocity_history()
 
     now = datetime.now(timezone.utc)
     generated = now.strftime("%b %d, %Y %H:%M UTC")
@@ -75,11 +83,11 @@ def _render_overview() -> Path:
     subject_name = subject["name"] if subject else "Comp Set"
 
     # Build the HTML sections
-    overview_table = _build_overview_table(grid)
+    overview_table = _build_overview_table(grid, dom_data=dom_data, velocity_data=vel_data)
     bed_type_tables = _build_bed_type_tables(grid)
     rent_comps_cards = _build_rent_comps_cards(grid)
     unit_type_metrics = _build_unit_type_metrics(grid)
-    rents_table = _build_rents_by_unit_type_table(rents)
+    rents_table = _build_rents_by_unit_type_table(rents, dom_data=dom_data, velocity_data=vel_data)
     rankings_json = _build_rankings_data(grid)
     exposure_json = _build_exposure_chart_data(exposure)
     rent_trend_json = _build_rent_trend_chart_data(rent_hist)
@@ -87,6 +95,7 @@ def _render_overview() -> Path:
     _trend_dates = set(r["fetched_at"][:10] for r in rent_hist) if rent_hist else set()
     _sparse_note = (f'<p class="sparse-note">{len(_trend_dates)} of 7 days collected</p>'
                     if len(_trend_dates) < 7 else '')
+    leasing_activity_json = _build_leasing_activity_chart_data(leasing_hist)
     concessions_table = _build_concessions_table(grid)
     fees_table = _build_fees_comparison_table(grid)
     pricing_html = _build_pricing_tab()
@@ -207,6 +216,11 @@ def _render_overview() -> Path:
     <h2>Historical Exposure</h2>
     <p class="subtitle">Track the percentage of units listed for rent over time.</p>
     <div class="chart-wrap chart-wide"><canvas id="exposureChart" aria-label="Line chart showing exposure percentage over time across all properties"></canvas></div>
+  </div>
+  <div class="card span-12">
+    <h2>Leasing Activity</h2>
+    <p class="subtitle">Units removed from listings per day (assumed leased).</p>
+    <div class="chart-wrap chart-wide"><canvas id="leasingChart" aria-label="Stacked bar chart showing daily leasing activity across all properties"></canvas></div>
   </div>
 </div>
 </div>
@@ -390,6 +404,32 @@ if (exposure.datasets.length > 0) {{
           grid: {{ color: C_LINE_ALPHA }},
           beginAtZero: true,
           max: 100
+        }}
+      }},
+      plugins: {{
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
+      }}
+    }}
+  }});
+}}
+
+/* Leasing activity chart */
+const leasingActivity = {leasing_activity_json};
+if (leasingActivity.datasets.length > 0) {{
+  new Chart(document.getElementById('leasingChart'), {{
+    type: 'bar',
+    data: {{ labels: leasingActivity.labels, datasets: leasingActivity.datasets }},
+    options: {{
+      responsive: true, maintainAspectRatio: false,
+      interaction: {{ intersect: false, mode: 'index' }},
+      scales: {{
+        x: {{ stacked: true, grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 10 }} }} }},
+        y: {{
+          stacked: true,
+          ticks: {{ stepSize: 1, font: {{ size: 10 }} }},
+          grid: {{ color: C_LINE_ALPHA }},
+          beginAtZero: true,
+          title: {{ display: true, text: 'Units Leased', font: {{ size: 10 }}, color: C_MUTED }}
         }}
       }},
       plugins: {{
