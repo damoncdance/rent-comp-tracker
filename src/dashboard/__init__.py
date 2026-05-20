@@ -322,18 +322,20 @@ Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,
 Chart.defaults.font.size = 11;
 var _mobile = window.innerWidth < 640;
 var _tablet = window.innerWidth < 960;
-var _manySeriesLegend = _tablet
+var _trendLegend = {{ position: 'bottom', labels: {{ boxWidth: 16, padding: _mobile ? 8 : 14, usePointStyle: true, pointStyleWidth: 10, font: {{ size: _mobile ? 9 : 11 }}, color: C_MUTED }} }};
+var _barLegend = _tablet
   ? {{ display: false }}
-  : {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }};
+  : {{ position: 'bottom', labels: {{ boxWidth: 16, padding: 14, usePointStyle: true, pointStyleWidth: 10, font: {{ size: 11 }}, color: C_MUTED }} }};
 
 /* Rankings charts */
 const rankings = {rankings_json};
 function makeRankChart(canvasId, data) {{
   if (!data || data.labels.length === 0) return;
   var el = document.getElementById(canvasId);
-  /* On mobile, dynamically size the container to fit all bars without crowding */
-  if (_mobile && el.parentElement) {{
-    el.parentElement.style.height = Math.max(200, data.labels.length * 32) + 'px';
+  /* Dynamically size the container to fit all bars */
+  if (el.parentElement) {{
+    var barH = _mobile ? 28 : 32;
+    el.parentElement.style.height = Math.max(_mobile ? 240 : 280, data.labels.length * barH + 40) + 'px';
   }}
   new Chart(el, {{
     type: 'bar',
@@ -344,7 +346,8 @@ function makeRankChart(canvasId, data) {{
         backgroundColor: data.colors,
         borderWidth: 0,
         borderRadius: 3,
-        maxBarThickness: _mobile ? 18 : 22,
+        categoryPercentage: 0.8,
+        barPercentage: 0.85,
       }}]
     }},
     options: {{
@@ -394,7 +397,7 @@ if (rentTrend.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: _manySeriesLegend
+        legend: _trendLegend
       }}
     }}
   }});
@@ -419,7 +422,7 @@ if (exposure.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: _manySeriesLegend
+        legend: _trendLegend
       }}
     }}
   }});
@@ -445,7 +448,7 @@ if (leasingActivity.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: _manySeriesLegend
+        legend: _barLegend
       }}
     }}
   }});
@@ -507,6 +510,11 @@ def _build_rent_comps_cards(grid: list[dict]) -> str:
 
         if not bed_rows:
             bed_rows = '<tr><td colspan="4" class="muted">No data</td></tr>'
+
+        # Add section divider after subject card
+        if i == 1 and len(cards) == 1:
+            cards.append('<div class="span-12" style="border-top:1px solid var(--line);padding:8px 0 0;margin-top:4px;">'
+                         '<h3 style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Comparables</h3></div>')
 
         cards.append(f"""
   <div class="card span-6 comp-card{' subject-card' if is_subj else ''}">
@@ -684,8 +692,13 @@ def _build_pricing_tab() -> str:
                 f'<td class="num">{beds_label[:1] if beds == 0 else str(beds) + "BR"}</td>'
                 f'<td class="num">${u.listed_rent:,.0f}</td>'
                 f'<td class="num" style="font-weight:700;">${u.recommended_rent:,.0f}</td>'
-                f'<td class="num" style="color:{delta_color};">{delta_sign}${abs(u.delta):,.0f}</td>'
-                f'<td>{_signal_badge(u.signal)}</td>'
+                f'<td class="num" style="color:{delta_color};">'
+                f'{"&#x25B2; " if u.delta > 0 else "&#x25BC; " if u.delta < 0 else ""}'
+                f'{delta_sign}${abs(u.delta):,.0f}</td>'
+                f'<td>{_signal_badge(u.signal)}'
+                f'<span style="display:block;font-size:9px;color:var(--muted);margin-top:1px;">'
+                f'{"Raise rent" if u.delta > 0 else "Lower rent" if u.delta < 0 else "Hold"}'
+                f'</span></td>'
                 f'<td class="num hide-mobile">{int(u.sqft):,}</td>'
                 f'<td class="num hide-mobile" style="{"border-bottom:2px solid var(--green);" if u.delta > 0 else ""}">${u.unit_psf:.2f}</td>'
                 f'<td class="num hide-mobile">${u.recommended_psf:.2f}</td>'

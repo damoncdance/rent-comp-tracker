@@ -268,7 +268,7 @@ new Chart(document.getElementById('rentChart'), {{
     {{ label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
     {{ label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
   ] }},
-  options: {{ responsive: true, maintainAspectRatio: false, interaction: {{ intersect: false, mode: 'index' }}, scales: {{ x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }}, y: {{ ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: 10 }} }}, grid: {{ color: C_LINE_ALPHA }} }} }}, plugins: {{ legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 14, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 11 }}, color: C_MUTED }} }} }} }}
+  options: {{ responsive: true, maintainAspectRatio: false, interaction: {{ intersect: false, mode: 'index' }}, scales: {{ x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }}, y: {{ ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: 10 }} }}, grid: {{ color: C_LINE_ALPHA }} }} }}, plugins: {{ legend: {{ position: 'bottom', labels: {{ boxWidth: 16, padding: 14, usePointStyle: true, pointStyleWidth: 10, font: {{ size: 11 }}, color: C_MUTED }} }} }} }}
 }});
 </script>
 </body>

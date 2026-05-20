@@ -3,19 +3,15 @@ from collections import defaultdict
 from src.dashboard._constants import COLORS, BED_COLORS
 from src.dashboard._helpers import json_safe
 
-# Subject line gets heavier stroke + larger points; comps are thinner + muted.
-# Subject: bold white line, large filled dots, drawn on top.
-# Comps: thin dashed muted lines, small hollow-ish dots.
+# Subject: thick accent line with large visible dots, drawn on top.
+# Comps: thin solid lines with small dots, muted colors.
 _SUBJECT_STYLE = {
-    "borderWidth": 4, "pointRadius": 8, "pointHoverRadius": 11,
-    "pointHitRadius": 28, "borderDash": [],
-    "pointStyle": "circle",
-    "pointBackgroundColor": "#fff",
-    "pointBorderWidth": 2,
+    "borderWidth": 4, "pointRadius": 6, "pointHoverRadius": 9,
+    "pointHitRadius": 12,
 }
 _COMP_STYLE = {
-    "borderWidth": 1.5, "pointRadius": 0, "pointHoverRadius": 6,
-    "pointHitRadius": 28, "borderDash": [5, 3],
+    "borderWidth": 1.5, "pointRadius": 4, "pointHoverRadius": 6,
+    "pointHitRadius": 12,
 }
 
 
@@ -61,7 +57,11 @@ def build_rankings_data(grid: list[dict]) -> str:
 # ===========================================================================
 
 def build_rent_trend_chart_data(rent_hist: list[dict], subject_name: str = "") -> str:
-    """Build Chart.js data for rent trends with subject emphasis."""
+    """Build Chart.js data for rent trends — subject + comp average + individual comps.
+
+    The chart shows the subject line prominently, a bold "Comp Average"
+    line, and individual comps as thin muted lines hidden by default.
+    """
     by_prop: dict[str, list] = defaultdict(list)
     all_dates = set()
     for r in rent_hist:
@@ -70,27 +70,71 @@ def build_rent_trend_chart_data(rent_hist: list[dict], subject_name: str = "") -
         by_prop[r["name"]].append({"date": date, "rent": r["avg_rent"]})
 
     labels = sorted(all_dates)
-    datasets = []
+
+    # Build subject and comp datasets separately
+    subject_ds = None
+    comp_datasets = []
+    comp_rent_by_date: dict[str, list[float]] = defaultdict(list)  # for comp average
+
     for i, (name, points) in enumerate(sorted(by_prop.items())):
         rent_by_date = {p["date"]: round(p["rent"]) for p in points}
         is_subj = (name == subject_name)
-        color = "#fff" if is_subj else COLORS[i % len(COLORS)]
-        style = _SUBJECT_STYLE if is_subj else _COMP_STYLE
-        ds = {
-            "label": name,
-            "data": [rent_by_date.get(d) for d in labels],
-            "borderColor": color,
-            "tension": 0.25,
-            "fill": False,
-            "spanGaps": True,
-            **style,
-        }
-        if is_subj:
-            ds["order"] = 0
-            ds["pointBorderColor"] = "#fff"
-        datasets.append(ds)
 
-    datasets.sort(key=lambda d: 0 if d.get("order") == 0 else 1)
+        if is_subj:
+            subject_ds = {
+                "label": name,
+                "data": [rent_by_date.get(d) for d in labels],
+                "borderColor": COLORS[i % len(COLORS)],
+                "tension": 0.25,
+                "fill": False,
+                "spanGaps": True,
+                "order": 0,
+                **_SUBJECT_STYLE,
+            }
+        else:
+            # Accumulate for comp average
+            for d in labels:
+                v = rent_by_date.get(d)
+                if v is not None:
+                    comp_rent_by_date[d].append(v)
+            comp_datasets.append({
+                "label": name,
+                "data": [rent_by_date.get(d) for d in labels],
+                "borderColor": COLORS[i % len(COLORS)],
+                "tension": 0.25,
+                "fill": False,
+                "spanGaps": True,
+                "hidden": True,
+                "order": 2,
+                **_COMP_STYLE,
+            })
+
+    # Comp average line
+    comp_avg_data = []
+    for d in labels:
+        vals = comp_rent_by_date.get(d, [])
+        comp_avg_data.append(round(sum(vals) / len(vals)) if vals else None)
+
+    comp_avg_ds = {
+        "label": "Comp Average",
+        "data": comp_avg_data,
+        "borderColor": "#8a8f98",
+        "borderWidth": 2.5,
+        "pointRadius": 4,
+        "pointHoverRadius": 7,
+        "pointHitRadius": 12,
+        "borderDash": [6, 3],
+        "tension": 0.25,
+        "fill": False,
+        "spanGaps": True,
+        "order": 1,
+    }
+
+    datasets = []
+    if subject_ds:
+        datasets.append(subject_ds)
+    datasets.append(comp_avg_ds)
+    datasets.extend(comp_datasets)
 
     return json_safe({"labels": labels, "datasets": datasets})
 
@@ -128,7 +172,7 @@ def build_leasing_activity_chart_data(activity: list[dict]) -> str:
 
 
 def build_exposure_chart_data(exposure: list[dict], subject_name: str = "") -> str:
-    """Build Chart.js data for exposure % over time with subject emphasis."""
+    """Build Chart.js data for exposure % — subject + comp average + individual comps."""
     by_prop: dict[str, list] = defaultdict(list)
     all_dates = set()
     for r in exposure:
@@ -137,26 +181,67 @@ def build_exposure_chart_data(exposure: list[dict], subject_name: str = "") -> s
         by_prop[r["name"]].append({"date": date, "pct": r["exposure_pct"]})
 
     labels = sorted(all_dates)
-    datasets = []
+
+    subject_ds = None
+    comp_datasets = []
+    comp_pct_by_date: dict[str, list[float]] = defaultdict(list)
+
     for i, (name, points) in enumerate(sorted(by_prop.items())):
         pct_by_date = {p["date"]: p["pct"] for p in points}
         is_subj = (name == subject_name)
-        color = "#fff" if is_subj else COLORS[i % len(COLORS)]
-        style = _SUBJECT_STYLE if is_subj else _COMP_STYLE
-        ds = {
-            "label": name,
-            "data": [pct_by_date.get(d) for d in labels],
-            "borderColor": color,
-            "tension": 0.25,
-            "fill": False,
-            "spanGaps": True,
-            **style,
-        }
-        if is_subj:
-            ds["order"] = 0
-            ds["pointBorderColor"] = "#fff"
-        datasets.append(ds)
 
-    datasets.sort(key=lambda d: 0 if d.get("order") == 0 else 1)
+        if is_subj:
+            subject_ds = {
+                "label": name,
+                "data": [pct_by_date.get(d) for d in labels],
+                "borderColor": COLORS[i % len(COLORS)],
+                "tension": 0.25,
+                "fill": False,
+                "spanGaps": True,
+                "order": 0,
+                **_SUBJECT_STYLE,
+            }
+        else:
+            for d in labels:
+                v = pct_by_date.get(d)
+                if v is not None:
+                    comp_pct_by_date[d].append(v)
+            comp_datasets.append({
+                "label": name,
+                "data": [pct_by_date.get(d) for d in labels],
+                "borderColor": COLORS[i % len(COLORS)],
+                "tension": 0.25,
+                "fill": False,
+                "spanGaps": True,
+                "hidden": True,
+                "order": 2,
+                **_COMP_STYLE,
+            })
+
+    comp_avg_data = []
+    for d in labels:
+        vals = comp_pct_by_date.get(d, [])
+        comp_avg_data.append(round(sum(vals) / len(vals), 1) if vals else None)
+
+    comp_avg_ds = {
+        "label": "Comp Average",
+        "data": comp_avg_data,
+        "borderColor": "#8a8f98",
+        "borderWidth": 2.5,
+        "pointRadius": 4,
+        "pointHoverRadius": 7,
+        "pointHitRadius": 12,
+        "borderDash": [6, 3],
+        "tension": 0.25,
+        "fill": False,
+        "spanGaps": True,
+        "order": 1,
+    }
+
+    datasets = []
+    if subject_ds:
+        datasets.append(subject_ds)
+    datasets.append(comp_avg_ds)
+    datasets.extend(comp_datasets)
 
     return json_safe({"labels": labels, "datasets": datasets})

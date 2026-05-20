@@ -79,6 +79,7 @@ def css() -> str:
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
     .comp-stats { grid-template-columns:repeat(3,1fr); }
+    .hide-mobile { display:none !important; }
   }
   @media (max-width:520px) {
     .span-3,.span-6 { grid-column:span 12; }
@@ -92,9 +93,9 @@ def css() -> str:
     .card { padding:10px 12px; }
     .stat { font-size:18px; }
     .stat-card { min-height:56px; }
-    .chart-wrap { height:180px; }
-    .chart-tall { height:320px; }
-    .chart-wide { height:220px; }
+    .chart-wrap { height:240px; }
+    .chart-tall { height:360px; }
+    .chart-wide { height:300px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
     .comp-table th,.comp-table td { min-width:70px; font-size:10px; }
@@ -134,8 +135,8 @@ def css() -> str:
 
   /* Charts */
   .chart-wrap { position:relative; height:220px; width:100%; }
-  .chart-tall { height:300px; }
-  .chart-wide { height:280px; }
+  .chart-tall { height:340px; }
+  .chart-wide { height:300px; }
 
   /* Tables */
   table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
@@ -176,8 +177,12 @@ def css() -> str:
     min-width:140px;
   }
   .comp-table thead th:first-child { position:sticky; left:0; background:var(--card); z-index:3; }
-  .subject-col { background:rgba(124,107,241,0.06) !important; }
-  .subject-row td { background:rgba(124,107,241,0.06) !important; }
+  .subject-col {
+    background:rgba(124,107,241,0.10) !important;
+    border-left:2px solid rgba(124,107,241,0.3);
+    border-right:2px solid rgba(124,107,241,0.3);
+  }
+  .subject-row td { background:rgba(124,107,241,0.10) !important; }
   .subject-row td:first-child { color:var(--accent); font-weight:700; }
 
   /* Data table */
