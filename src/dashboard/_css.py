@@ -93,7 +93,7 @@ def css() -> str:
     .stat { font-size:18px; }
     .stat-card { min-height:56px; }
     .chart-wrap { height:180px; }
-    .chart-tall { height:280px; }
+    .chart-tall { height:320px; }
     .chart-wide { height:220px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
@@ -102,6 +102,7 @@ def css() -> str:
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
+    .hide-mobile { display:none !important; }
     .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }

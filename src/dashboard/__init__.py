@@ -321,7 +321,8 @@ Chart.defaults.borderColor = C_LINE;
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
 var _mobile = window.innerWidth < 640;
-var _manySeriesLegend = _mobile
+var _tablet = window.innerWidth < 960;
+var _manySeriesLegend = _tablet
   ? {{ display: false }}
   : {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }};
 
@@ -329,16 +330,21 @@ var _manySeriesLegend = _mobile
 const rankings = {rankings_json};
 function makeRankChart(canvasId, data) {{
   if (!data || data.labels.length === 0) return;
-  new Chart(document.getElementById(canvasId), {{
+  var el = document.getElementById(canvasId);
+  /* On mobile, dynamically size the container to fit all bars without crowding */
+  if (_mobile && el.parentElement) {{
+    el.parentElement.style.height = Math.max(200, data.labels.length * 32) + 'px';
+  }}
+  new Chart(el, {{
     type: 'bar',
     data: {{
-      labels: data.labels,
+      labels: _mobile && data.mobileLabels ? data.mobileLabels : data.labels,
       datasets: [{{
         data: data.values,
         backgroundColor: data.colors,
         borderWidth: 0,
         borderRadius: 3,
-        maxBarThickness: 22,
+        maxBarThickness: _mobile ? 18 : 22,
       }}]
     }},
     options: {{
@@ -355,7 +361,7 @@ function makeRankChart(canvasId, data) {{
       }},
       scales: {{
         x: {{
-          ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: _mobile ? 9 : 10 }}, maxTicksLimit: 6 }},
+          ticks: {{ callback: v => '$' + (Number(v)/1000).toFixed(1) + 'k', font: {{ size: _mobile ? 9 : 10 }}, maxTicksLimit: _mobile ? 4 : 6 }},
           grid: {{ color: C_LINE_ALPHA }}
         }},
         y: {{
@@ -680,13 +686,13 @@ def _build_pricing_tab() -> str:
                 f'<td class="num" style="font-weight:700;">${u.recommended_rent:,.0f}</td>'
                 f'<td class="num" style="color:{delta_color};">{delta_sign}${abs(u.delta):,.0f}</td>'
                 f'<td>{_signal_badge(u.signal)}</td>'
-                f'<td class="num">{int(u.sqft):,}</td>'
-                f'<td class="num" style="{"border-bottom:2px solid var(--green);" if u.delta > 0 else ""}">${u.unit_psf:.2f}</td>'
-                f'<td class="num">${u.recommended_psf:.2f}</td>'
-                f'<td class="num">${u.aggressive_rent:,.0f}</td>'
-                f'<td class="num">${u.conservative_rent:,.0f}</td>'
-                f'<td class="num" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
-                f'<td>{_e(u.floorplan_name)}</td>'
+                f'<td class="num hide-mobile">{int(u.sqft):,}</td>'
+                f'<td class="num hide-mobile" style="{"border-bottom:2px solid var(--green);" if u.delta > 0 else ""}">${u.unit_psf:.2f}</td>'
+                f'<td class="num hide-mobile">${u.recommended_psf:.2f}</td>'
+                f'<td class="num hide-mobile">${u.aggressive_rent:,.0f}</td>'
+                f'<td class="num hide-mobile">${u.conservative_rent:,.0f}</td>'
+                f'<td class="num hide-mobile" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
+                f'<td class="hide-mobile">{_e(u.floorplan_name)}</td>'
                 f'</tr>'
             )
 
@@ -703,10 +709,10 @@ def _build_pricing_tab() -> str:
             f'<td class="num">${avg_listed:,.0f}</td>'
             f'<td class="num">${avg_rec:,.0f}</td>'
             f'<td class="num" style="color:{sub_color};">{sub_sign}${abs(avg_delta):,.0f}</td>'
-            f'<td></td>'
-            f'<td colspan="3"></td>'
-            f'<td colspan="3"></td>'
-            f'<td class="num" style="color:{sub_color};">Impact: {sub_sign}${abs(total_impact):,.0f}/mo</td>'
+            f'<td style="color:{sub_color};font-size:10px;">Impact: {sub_sign}${abs(total_impact):,.0f}/mo</td>'
+            f'<td class="hide-mobile" colspan="3"></td>'
+            f'<td class="hide-mobile" colspan="3"></td>'
+            f'<td class="hide-mobile"></td>'
             f'</tr>'
         )
 
@@ -715,14 +721,14 @@ def _build_pricing_tab() -> str:
     <h2 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pricing — {_e(report.subject_name)}</h2>
     <p class="subtitle">{report.comp_count} comps analyzed &middot; Generated {_fmt_dt(report.generated_at)}</p>
     <div class="scroll scroll-wide">
-      <table class="data-table" style="min-width:1100px;">
+      <table class="data-table" style="min-width:900px;">
         <thead><tr>
           <th>Unit</th><th class="num">Type</th>
-          <th class="num">Listed</th><th class="num">Recommended</th>
+          <th class="num">Listed</th><th class="num">Rec</th>
           <th class="num">Delta</th><th>Signal</th>
-          <th class="num">SqFt</th><th class="num">Listed PSF</th><th class="num">Rec PSF</th>
-          <th class="num">Aggressive</th><th class="num">Conservative</th>
-          <th class="num">Delta %</th><th>Floorplan</th>
+          <th class="num hide-mobile">SqFt</th><th class="num hide-mobile">Listed PSF</th><th class="num hide-mobile">Rec PSF</th>
+          <th class="num hide-mobile">Aggressive</th><th class="num hide-mobile">Conservative</th>
+          <th class="num hide-mobile">Delta %</th><th class="hide-mobile">Floorplan</th>
         </tr></thead>
         <tbody>{rows}</tbody>
       </table>

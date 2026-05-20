@@ -255,7 +255,7 @@ new Chart(document.getElementById('mixChart'), {{
 const timeline = {timeline_json};
 new Chart(document.getElementById('totalChart'), {{
   type: 'line',
-  data: {{ labels: timeline.map(p => p.t.slice(0,10)), datasets: [{{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }}] }},
+  data: {{ labels: timeline.map(p => p.t.slice(0,10)), datasets: [{{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 2.5, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }}] }},
   options: {{ responsive: true, maintainAspectRatio: false, interaction: {{ intersect: false, mode: 'index' }}, scales: {{ x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }}, y: {{ beginAtZero: true, ticks: {{ font: {{ size: 10 }}, precision: 0 }}, grid: {{ color: C_LINE_ALPHA }} }} }}, plugins: {{ legend: {{ display: false }} }} }}
 }});
 
@@ -263,10 +263,10 @@ const rentSeries = {rent_series_json};
 new Chart(document.getElementById('rentChart'), {{
   type: 'line',
   data: {{ labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
-    {{ label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }},
-    {{ label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }},
-    {{ label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }},
-    {{ label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }},
+    {{ label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
+    {{ label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
+    {{ label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
+    {{ label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }},
   ] }},
   options: {{ responsive: true, maintainAspectRatio: false, interaction: {{ intersect: false, mode: 'index' }}, scales: {{ x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }}, y: {{ ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: 10 }} }}, grid: {{ color: C_LINE_ALPHA }} }} }}, plugins: {{ legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 14, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 11 }}, color: C_MUTED }} }} }} }}
 }});

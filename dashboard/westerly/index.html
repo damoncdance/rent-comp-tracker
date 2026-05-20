@@ -96,7 +96,7 @@
     .stat { font-size:18px; }
     .stat-card { min-height:56px; }
     .chart-wrap { height:180px; }
-    .chart-tall { height:280px; }
+    .chart-tall { height:320px; }
     .chart-wide { height:220px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
@@ -105,6 +105,7 @@
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
+    .hide-mobile { display:none !important; }
     .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }
@@ -411,7 +412,7 @@ new Chart(document.getElementById('mixChart'), {
 const timeline = [{"t": "2026-05-08T20:48:03.788219+00:00", "count": 10}, {"t": "2026-05-09T19:18:59.507414+00:00", "count": 10}, {"t": "2026-05-10T14:17:53.582634+00:00", "count": 10}, {"t": "2026-05-11T15:45:33.740997+00:00", "count": 10}, {"t": "2026-05-12T21:27:27.236785+00:00", "count": 10}, {"t": "2026-05-13T15:23:05.973460+00:00", "count": 10}, {"t": "2026-05-14T15:04:54.872425+00:00", "count": 10}, {"t": "2026-05-15T14:45:52.494274+00:00", "count": 12}, {"t": "2026-05-16T14:05:20.166656+00:00", "count": 12}, {"t": "2026-05-17T14:03:38.036496+00:00", "count": 13}, {"t": "2026-05-18T15:02:10.120420+00:00", "count": 13}, {"t": "2026-05-19T16:28:14.275188+00:00", "count": 15}, {"t": "2026-05-20T20:37:35.693297+00:00", "count": 15}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
-  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 }] },
+  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 2.5, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 }] },
   options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, maxTicksLimit: 15, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { display: false } } }
 });
 
@@ -419,10 +420,10 @@ const rentSeries = [{"t": "2026-05-08T20:48:03.788219+00:00", "studio": 2373.0, 
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
-    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 },
-    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 },
-    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 },
-    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, pointHitRadius: 24 },
+    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 },
+    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 },
+    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 },
+    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 3, pointRadius: 6, pointHoverRadius: 9, pointHitRadius: 28 },
   ] },
   options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, maxTicksLimit: 15, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 }, color: C_MUTED } } } }
 });
