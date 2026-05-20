@@ -320,6 +320,10 @@ Chart.defaults.color = C_MUTED;
 Chart.defaults.borderColor = C_LINE;
 Chart.defaults.font.family = "ui-monospace,SFMono-Regular,'Cascadia Mono',Menlo,monospace";
 Chart.defaults.font.size = 11;
+var _mobile = window.innerWidth < 640;
+var _manySeriesLegend = _mobile
+  ? {{ display: false }}
+  : {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }};
 
 /* Rankings charts */
 const rankings = {rankings_json};
@@ -351,11 +355,11 @@ function makeRankChart(canvasId, data) {{
       }},
       scales: {{
         x: {{
-          ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: 10 }} }},
+          ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: _mobile ? 9 : 10 }}, maxTicksLimit: 6 }},
           grid: {{ color: C_LINE_ALPHA }}
         }},
         y: {{
-          ticks: {{ font: {{ size: 11 }} }},
+          ticks: {{ font: {{ size: _mobile ? 9 : 11 }}, autoSkip: false }},
           grid: {{ display: false }}
         }}
       }}
@@ -384,7 +388,7 @@ if (rentTrend.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: _manySeriesLegend
       }}
     }}
   }});
@@ -409,7 +413,7 @@ if (exposure.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: _manySeriesLegend
       }}
     }}
   }});
@@ -435,7 +439,7 @@ if (leasingActivity.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: _manySeriesLegend
       }}
     }}
   }});
@@ -671,18 +675,18 @@ def _build_pricing_tab() -> str:
             rows += (
                 f'<tr>'
                 f'<td class="mono">{_e(u.unit_code)}</td>'
-                f'<td>{_e(u.floorplan_name)}</td>'
                 f'<td class="num">{beds_label[:1] if beds == 0 else str(beds) + "BR"}</td>'
-                f'<td class="num">{int(u.sqft):,}</td>'
                 f'<td class="num">${u.listed_rent:,.0f}</td>'
                 f'<td class="num" style="font-weight:700;">${u.recommended_rent:,.0f}</td>'
-                f'<td class="num">${u.aggressive_rent:,.0f}</td>'
-                f'<td class="num">${u.conservative_rent:,.0f}</td>'
                 f'<td class="num" style="color:{delta_color};">{delta_sign}${abs(u.delta):,.0f}</td>'
-                f'<td class="num" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
                 f'<td>{_signal_badge(u.signal)}</td>'
+                f'<td class="num">{int(u.sqft):,}</td>'
                 f'<td class="num" style="{"border-bottom:2px solid var(--green);" if u.delta > 0 else ""}">${u.unit_psf:.2f}</td>'
                 f'<td class="num">${u.recommended_psf:.2f}</td>'
+                f'<td class="num">${u.aggressive_rent:,.0f}</td>'
+                f'<td class="num">${u.conservative_rent:,.0f}</td>'
+                f'<td class="num" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
+                f'<td>{_e(u.floorplan_name)}</td>'
                 f'</tr>'
             )
 
@@ -695,13 +699,14 @@ def _build_pricing_tab() -> str:
         sub_sign = "+" if avg_delta >= 0 else ""
         rows += (
             f'<tr style="border-top:1px solid var(--line);font-weight:600;font-size:11px;">'
-            f'<td colspan="4" style="text-align:right;color:var(--muted);">{beds_label} subtotal</td>'
+            f'<td colspan="2" style="text-align:right;color:var(--muted);">{beds_label} subtotal</td>'
             f'<td class="num">${avg_listed:,.0f}</td>'
             f'<td class="num">${avg_rec:,.0f}</td>'
-            f'<td colspan="2"></td>'
             f'<td class="num" style="color:{sub_color};">{sub_sign}${abs(avg_delta):,.0f}</td>'
-            f'<td colspan="2"></td>'
-            f'<td colspan="2" class="num" style="color:{sub_color};">Impact: {sub_sign}${abs(total_impact):,.0f}/mo</td>'
+            f'<td></td>'
+            f'<td colspan="3"></td>'
+            f'<td colspan="3"></td>'
+            f'<td class="num" style="color:{sub_color};">Impact: {sub_sign}${abs(total_impact):,.0f}/mo</td>'
             f'</tr>'
         )
 
@@ -712,11 +717,12 @@ def _build_pricing_tab() -> str:
     <div class="scroll scroll-wide">
       <table class="data-table" style="min-width:1100px;">
         <thead><tr>
-          <th>Unit</th><th>Floorplan</th><th class="num">Type</th><th class="num">SqFt</th>
+          <th>Unit</th><th class="num">Type</th>
           <th class="num">Listed</th><th class="num">Recommended</th>
+          <th class="num">Delta</th><th>Signal</th>
+          <th class="num">SqFt</th><th class="num">Listed PSF</th><th class="num">Rec PSF</th>
           <th class="num">Aggressive</th><th class="num">Conservative</th>
-          <th class="num">Delta</th><th class="num">Delta %</th><th>Signal</th>
-          <th class="num">Listed PSF</th><th class="num">Rec PSF</th>
+          <th class="num">Delta %</th><th>Floorplan</th>
         </tr></thead>
         <tbody>{rows}</tbody>
       </table>

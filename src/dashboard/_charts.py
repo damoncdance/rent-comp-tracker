@@ -4,8 +4,14 @@ from src.dashboard._constants import COLORS, BED_COLORS
 from src.dashboard._helpers import json_safe
 
 # Subject line gets heavier stroke + larger points; comps are thinner + muted.
-_SUBJECT_STYLE = {"borderWidth": 2.5, "pointRadius": 4, "pointHoverRadius": 7, "pointHitRadius": 20}
-_COMP_STYLE = {"borderWidth": 1.5, "pointRadius": 2, "pointHoverRadius": 5, "pointHitRadius": 20}
+_SUBJECT_STYLE = {
+    "borderWidth": 4, "pointRadius": 7, "pointHoverRadius": 10,
+    "pointHitRadius": 24, "borderDash": [],
+}
+_COMP_STYLE = {
+    "borderWidth": 1.5, "pointRadius": 4, "pointHoverRadius": 7,
+    "pointHitRadius": 24, "borderDash": [4, 2],
+}
 
 
 # ===========================================================================

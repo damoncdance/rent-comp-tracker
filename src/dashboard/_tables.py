@@ -354,17 +354,23 @@ def build_rents_by_unit_type_table(rents: list[dict],
 # ===========================================================================
 
 def build_concessions_table(grid: list[dict]) -> str:
-    """Build cross-property concessions table."""
+    """Build cross-property concessions table, active concessions first."""
+    # Sort: subject first, then properties with concessions, then empty
+    sorted_grid = sorted(grid, key=lambda p: (
+        0 if p.get("is_subject") else 1,
+        0 if p.get("concessions") else 1,
+        p.get("name", ""),
+    ))
     rows = ""
-    for p in grid:
+    for p in sorted_grid:
         is_subj = p.get("is_subject")
         cls = ' class="subject-row"' if is_subj else ''
         concs = p.get("concessions", [])
         if concs:
             text = "; ".join(c[:120] for c in concs)
         else:
-            text = "—"
-        rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{e(text)}</td></tr>'
+            text = '<span style="opacity:0.4;">None</span>'
+        rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{text}</td></tr>'
 
     return f"""<table class="data-table">
 <thead><tr><th>Property</th><th>Concession</th></tr></thead>

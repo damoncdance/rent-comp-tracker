@@ -93,7 +93,7 @@ def css() -> str:
     .stat { font-size:18px; }
     .stat-card { min-height:56px; }
     .chart-wrap { height:180px; }
-    .chart-tall { height:240px; }
+    .chart-tall { height:280px; }
     .chart-wide { height:220px; }
     .scroll { max-height:min(400px,50vh); }
     th,td { padding:5px 6px; font-size:11px; }
