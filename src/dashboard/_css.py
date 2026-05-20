@@ -144,6 +144,7 @@ def css() -> str:
     background:var(--card); font-weight:600; font-size:10px;
     text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
     position:sticky; top:0; z-index:1;
+    box-shadow:0 1px 0 var(--line);
   }
   th.num { text-align:right; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
@@ -154,7 +155,14 @@ def css() -> str:
     max-height:min(540px,58vh); overflow:auto;
     border-radius:4px; border:1px solid var(--line); background:var(--card);
   }
-  .scroll-wide { max-height:none; overflow-x:auto; }
+  .scroll-wide {
+    max-height:none; overflow-x:auto;
+    background:
+      linear-gradient(to right, var(--card) 30%, transparent) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, var(--card) 30%, transparent) right center / 40px 100% no-repeat local,
+      linear-gradient(to right, rgba(0,0,0,0.25), transparent) left center / 14px 100% no-repeat scroll,
+      linear-gradient(to left, rgba(0,0,0,0.25), transparent) right center / 14px 100% no-repeat scroll;
+  }
   .scroll table { margin:0; }
 
   /* Comp table (overview) */

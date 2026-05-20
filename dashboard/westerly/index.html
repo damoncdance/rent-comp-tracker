@@ -147,6 +147,7 @@
     background:var(--card); font-weight:600; font-size:10px;
     text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
     position:sticky; top:0; z-index:1;
+    box-shadow:0 1px 0 var(--line);
   }
   th.num { text-align:right; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
@@ -157,7 +158,14 @@
     max-height:min(540px,58vh); overflow:auto;
     border-radius:4px; border:1px solid var(--line); background:var(--card);
   }
-  .scroll-wide { max-height:none; overflow-x:auto; }
+  .scroll-wide {
+    max-height:none; overflow-x:auto;
+    background:
+      linear-gradient(to right, var(--card) 30%, transparent) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, var(--card) 30%, transparent) right center / 40px 100% no-repeat local,
+      linear-gradient(to right, rgba(0,0,0,0.25), transparent) left center / 14px 100% no-repeat scroll,
+      linear-gradient(to left, rgba(0,0,0,0.25), transparent) right center / 14px 100% no-repeat scroll;
+  }
   .scroll table { margin:0; }
 
   /* Comp table (overview) */
@@ -364,6 +372,7 @@
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
+    tab.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
     var panel = document.getElementById('tab-' + tab.dataset.tab);
     panel.classList.add('active');
     panel.removeAttribute('aria-hidden');
@@ -402,20 +411,20 @@ new Chart(document.getElementById('mixChart'), {
 const timeline = [{"t": "2026-05-08T20:41:27.132165+00:00", "count": 10}, {"t": "2026-05-08T20:48:03.788219+00:00", "count": 10}, {"t": "2026-05-09T19:18:59.507414+00:00", "count": 10}, {"t": "2026-05-10T01:00:06.414097+00:00", "count": 10}, {"t": "2026-05-10T01:08:08.587419+00:00", "count": 10}, {"t": "2026-05-10T02:29:20.317993+00:00", "count": 10}, {"t": "2026-05-10T02:51:10.995720+00:00", "count": 10}, {"t": "2026-05-10T02:57:55.613217+00:00", "count": 10}, {"t": "2026-05-10T03:03:08.425459+00:00", "count": 10}, {"t": "2026-05-10T05:40:59.555066+00:00", "count": 10}, {"t": "2026-05-10T14:01:24.080267+00:00", "count": 10}, {"t": "2026-05-10T14:17:53.582634+00:00", "count": 10}, {"t": "2026-05-11T15:45:33.740997+00:00", "count": 10}, {"t": "2026-05-12T21:27:27.236785+00:00", "count": 10}, {"t": "2026-05-13T15:23:05.973460+00:00", "count": 10}, {"t": "2026-05-14T15:04:54.872425+00:00", "count": 10}, {"t": "2026-05-15T14:45:52.494274+00:00", "count": 12}, {"t": "2026-05-16T14:05:20.166656+00:00", "count": 12}, {"t": "2026-05-17T14:03:38.036496+00:00", "count": 13}, {"t": "2026-05-18T15:02:10.120420+00:00", "count": 13}, {"t": "2026-05-19T16:28:14.275188+00:00", "count": 15}];
 new Chart(document.getElementById('totalChart'), {
   type: 'line',
-  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 2 }] },
-  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { display: false } } }
+  data: { labels: timeline.map(p => p.t.slice(0,10)), datasets: [{ label: 'Available units', data: timeline.map(p => p.count), borderColor: C_BED[0], backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.25, fill: true, borderWidth: 1.5, pointRadius: 3, pointHoverRadius: 6, pointHitRadius: 20 }] },
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, maxTicksLimit: 15, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { display: false } } }
 });
 
 const rentSeries = [{"t": "2026-05-08T20:41:27.132165+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-08T20:48:03.788219+00:00", "studio": 2373.0, "one_br": 2882.8, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-09T19:18:59.507414+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T01:00:06.414097+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T01:08:08.587419+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T02:29:20.317993+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T02:51:10.995720+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T02:57:55.613217+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T03:03:08.425459+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T05:40:59.555066+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T14:01:24.080267+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-10T14:17:53.582634+00:00", "studio": 2373.0, "one_br": 2880.2, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-11T15:45:33.740997+00:00", "studio": 2373.0, "one_br": 2874.6, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-12T21:27:27.236785+00:00", "studio": 2411.0, "one_br": 2942.0, "two_br": 4252.333333333333, "three_br": null}, {"t": "2026-05-13T15:23:05.973460+00:00", "studio": 2400.0, "one_br": 2931.6, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-14T15:04:54.872425+00:00", "studio": 2413.0, "one_br": 2931.6, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-15T14:45:52.494274+00:00", "studio": 2413.0, "one_br": 2927.1428571428573, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-16T14:05:20.166656+00:00", "studio": 2413.0, "one_br": 2927.1428571428573, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-17T14:03:38.036496+00:00", "studio": 2413.0, "one_br": 2914.25, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-18T15:02:10.120420+00:00", "studio": 2413.0, "one_br": 2916.0, "two_br": 4233.333333333333, "three_br": null}, {"t": "2026-05-19T16:28:14.275188+00:00", "studio": 2438.3333333333335, "one_br": 2855.0, "two_br": 4251.333333333333, "three_br": null}];
 new Chart(document.getElementById('rentChart'), {
   type: 'line',
   data: { labels: rentSeries.map(p => p.t.slice(0,10)), datasets: [
-    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
-    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 1.5, pointRadius: 2 },
+    { label: 'Studio', data: rentSeries.map(p => p.studio), borderColor: C_BED[0], tension: 0.25, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointHitRadius: 20 },
+    { label: '1 BR', data: rentSeries.map(p => p.one_br), borderColor: C_BED[1], tension: 0.25, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointHitRadius: 20 },
+    { label: '2 BR', data: rentSeries.map(p => p.two_br), borderColor: C_BED[2], tension: 0.25, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointHitRadius: 20 },
+    { label: '3 BR', data: rentSeries.map(p => p.three_br), borderColor: C_BED[3], tension: 0.25, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointHitRadius: 20 },
   ] },
-  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, font: { size: 11 }, color: C_MUTED } } } }
+  options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, maxTicksLimit: 15, font: { size: 10 } } }, y: { ticks: { callback: v => '$' + Number(v).toLocaleString(), font: { size: 10 } }, grid: { color: C_LINE_ALPHA } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 }, color: C_MUTED } } } }
 });
 </script>
 </body>

@@ -89,8 +89,8 @@ def _render_overview() -> Path:
     unit_type_metrics = _build_unit_type_metrics(grid)
     rents_table = _build_rents_by_unit_type_table(rents, dom_data=dom_data, velocity_data=vel_data)
     rankings_json = _build_rankings_data(grid)
-    exposure_json = _build_exposure_chart_data(exposure)
-    rent_trend_json = _build_rent_trend_chart_data(rent_hist)
+    exposure_json = _build_exposure_chart_data(exposure, subject_name=subject_name)
+    rent_trend_json = _build_rent_trend_chart_data(rent_hist, subject_name=subject_name)
     # Count unique trend dates for sparse-data note
     _trend_dates = set(r["fetched_at"][:10] for r in rent_hist) if rent_hist else set()
     _sparse_note = (f'<p class="sparse-note">{len(_trend_dates)} of 7 days collected</p>'
@@ -291,6 +291,7 @@ document.addEventListener('keydown', function(e) {{
     tab.setAttribute('aria-selected', 'true');
     tab.setAttribute('tabindex', '0');
     tab.focus();
+    tab.scrollIntoView({{inline:'center',block:'nearest',behavior:'smooth'}});
     var panel = document.getElementById('tab-' + tab.dataset.tab);
     panel.classList.add('active');
     panel.removeAttribute('aria-hidden');
@@ -333,7 +334,7 @@ function makeRankChart(canvasId, data) {{
         backgroundColor: data.colors,
         borderWidth: 0,
         borderRadius: 3,
-        barThickness: 18,
+        maxBarThickness: 22,
       }}]
     }},
     options: {{
@@ -343,6 +344,7 @@ function makeRankChart(canvasId, data) {{
         legend: {{ display: false }},
         tooltip: {{
           callbacks: {{
+            title: function(ctx) {{ return data.fullNames ? data.fullNames[ctx[0].dataIndex] : ctx[0].label; }},
             label: function(ctx) {{ return '$' + ctx.raw.toLocaleString(); }}
           }}
         }}
@@ -375,14 +377,14 @@ if (rentTrend.datasets.length > 0) {{
       responsive: true, maintainAspectRatio: false,
       interaction: {{ intersect: false, mode: 'index' }},
       scales: {{
-        x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 10 }} }} }},
+        x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }},
         y: {{
           ticks: {{ callback: v => '$' + Number(v).toLocaleString(), font: {{ size: 10 }} }},
           grid: {{ color: C_LINE_ALPHA }}
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
       }}
     }}
   }});
@@ -398,7 +400,7 @@ if (exposure.datasets.length > 0) {{
       responsive: true, maintainAspectRatio: false,
       interaction: {{ intersect: false, mode: 'index' }},
       scales: {{
-        x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 10 }} }} }},
+        x: {{ grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }},
         y: {{
           ticks: {{ callback: v => v + '%', font: {{ size: 10 }} }},
           grid: {{ color: C_LINE_ALPHA }},
@@ -407,7 +409,7 @@ if (exposure.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
       }}
     }}
   }});
@@ -423,7 +425,7 @@ if (leasingActivity.datasets.length > 0) {{
       responsive: true, maintainAspectRatio: false,
       interaction: {{ intersect: false, mode: 'index' }},
       scales: {{
-        x: {{ stacked: true, grid: {{ display: false }}, ticks: {{ maxRotation: 0, font: {{ size: 10 }} }} }},
+        x: {{ stacked: true, grid: {{ display: false }}, ticks: {{ maxRotation: 0, maxTicksLimit: 15, font: {{ size: 10 }} }} }},
         y: {{
           stacked: true,
           ticks: {{ stepSize: 1, font: {{ size: 10 }} }},
@@ -433,7 +435,7 @@ if (leasingActivity.datasets.length > 0) {{
         }}
       }},
       plugins: {{
-        legend: {{ position: 'bottom', labels: {{ boxWidth: 6, padding: 10, usePointStyle: true, pointStyleWidth: 6, font: {{ size: 10 }}, color: C_MUTED }} }}
+        legend: {{ position: 'bottom', labels: {{ boxWidth: 10, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: {{ size: 10 }}, color: C_MUTED }} }}
       }}
     }}
   }});
@@ -679,7 +681,7 @@ def _build_pricing_tab() -> str:
                 f'<td class="num" style="color:{delta_color};">{delta_sign}${abs(u.delta):,.0f}</td>'
                 f'<td class="num" style="color:{delta_color};">{u.delta_pct*100:+.1f}%</td>'
                 f'<td>{_signal_badge(u.signal)}</td>'
-                f'<td class="num">${u.unit_psf:.2f}</td>'
+                f'<td class="num" style="{"border-bottom:2px solid var(--green);" if u.delta > 0 else ""}">${u.unit_psf:.2f}</td>'
                 f'<td class="num">${u.recommended_psf:.2f}</td>'
                 f'</tr>'
             )
