@@ -361,6 +361,9 @@ def build_concessions_table(grid: list[dict]) -> str:
         0 if p.get("concessions") else 1,
         p.get("name", ""),
     ))
+
+    active_count = sum(1 for p in grid if p.get("concessions"))
+
     rows = ""
     for p in sorted_grid:
         is_subj = p.get("is_subject")
@@ -368,11 +371,17 @@ def build_concessions_table(grid: list[dict]) -> str:
         concs = p.get("concessions", [])
         if concs:
             text = "; ".join(c[:120] for c in concs)
+            rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{text}</td></tr>'
         else:
-            text = '<span style="opacity:0.4;">None</span>'
-        rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{text}</td></tr>'
+            # Collapse no-concession properties into a lighter row
+            rows += (f'<tr{cls} style="opacity:0.45;"><td>{e(p["name"])}</td>'
+                     f'<td class="concession-cell">None</td></tr>')
 
-    return f"""<table class="data-table">
+    summary = (f'<div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">'
+               f'<strong style="color:var(--fg-strong);">{active_count}</strong> of {len(grid)} '
+               f'properties offering concessions</div>')
+
+    return f"""{summary}<table class="data-table">
 <thead><tr><th>Property</th><th>Concession</th></tr></thead>
 <tbody>{rows}</tbody>
 </table>"""

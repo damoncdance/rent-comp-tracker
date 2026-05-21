@@ -30,7 +30,7 @@ def build_rankings_data(grid: list[dict]) -> str:
                 items.append({
                     "name": p["name"],
                     "short": p["name"][:16] + "\u2026" if len(p["name"]) > 16 else p["name"],
-                    "mobile": p["name"][:10] + "\u2026" if len(p["name"]) > 10 else p["name"],
+                    "mobile": p["name"][:14] + "\u2026" if len(p["name"]) > 14 else p["name"],
                     "rent": round(bd["avg_rent"]),
                     "is_subject": bool(p.get("is_subject")),
                 })

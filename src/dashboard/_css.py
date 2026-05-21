@@ -45,14 +45,16 @@ def css() -> str:
   .tabs {
     max-width:1400px; margin:0 auto;
     display:flex; gap:0; border-bottom:1px solid var(--line);
-    padding-top:10px; overflow-x:auto;
+    padding-top:10px; overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
   }
+  .tabs::-webkit-scrollbar { display:none; }
   .tab {
     padding:8px 16px; font-size:11px; font-weight:600; color:var(--muted);
     text-transform:uppercase; letter-spacing:.05em; cursor:pointer;
     border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0;
     background:none; font-family:inherit; position:relative; bottom:-1px;
-    white-space:nowrap;
+    white-space:nowrap; scroll-snap-align:center;
   }
   .tab:hover { color:var(--fg); }
   .tab:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px 4px 0 0; }
@@ -75,11 +77,13 @@ def css() -> str:
   .span-5 { grid-column:span 5; } .span-6 { grid-column:span 6; }
   .span-7 { grid-column:span 7; } .span-8 { grid-column:span 8; }
   .span-12 { grid-column:span 12; }
+  .show-mobile { display:none; }
   @media (max-width:960px) {
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
     .comp-stats { grid-template-columns:repeat(3,1fr); }
-    .hide-mobile { display:none !important; }
+    .show-desktop { display:none !important; }
+    .show-mobile { display:block !important; }
   }
   @media (max-width:520px) {
     .span-3,.span-6 { grid-column:span 12; }
@@ -103,7 +107,6 @@ def css() -> str:
     .data-table th,.data-table td { font-size:10px; padding:4px 5px; }
     .comp-stats { grid-template-columns:repeat(2,1fr); gap:4px; padding:6px; }
     .comp-name { font-size:13px; }
-    .hide-mobile { display:none !important; }
     .prop-nav-menu { width:calc(100vw - 32px); max-width:260px; left:0; right:auto; }
     .comp-header { flex-wrap:wrap; }
     .metric-card .metric-row { font-size:11px; }
@@ -158,12 +161,21 @@ def css() -> str:
     border-radius:4px; border:1px solid var(--line); background:var(--card);
   }
   .scroll-wide {
-    max-height:none; overflow-x:auto;
+    max-height:none; overflow-x:auto; position:relative;
     background:
       linear-gradient(to right, var(--card) 30%, transparent) left center / 40px 100% no-repeat local,
       linear-gradient(to left, var(--card) 30%, transparent) right center / 40px 100% no-repeat local,
       linear-gradient(to right, rgba(0,0,0,0.25), transparent) left center / 14px 100% no-repeat scroll,
       linear-gradient(to left, rgba(0,0,0,0.25), transparent) right center / 14px 100% no-repeat scroll;
+  }
+  .scroll-hint {
+    display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    color:var(--muted); font-size:18px; opacity:0.6; pointer-events:none;
+    animation:scroll-hint-pulse 2s ease-in-out 3;
+  }
+  @keyframes scroll-hint-pulse {
+    0%,100% { opacity:0.3; transform:translateY(-50%) translateX(0); }
+    50% { opacity:0.8; transform:translateY(-50%) translateX(4px); }
   }
   .scroll table { margin:0; }
 
