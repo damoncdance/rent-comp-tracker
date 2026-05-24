@@ -99,9 +99,9 @@
     .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
     .grid { gap:6px; margin-top:8px; }
     .card { padding:10px 12px; }
-    .stat { font-size:14px; }
+    .stat { font-size:18px; }
     .stat-card { min-height:56px; }
-    .stat-col { grid-column:span 4; }
+    .stat-col { grid-column:span 6; }
     .chart-wrap { height:240px; }
     .chart-tall { height:360px; }
     .chart-wide { height:300px; }
@@ -119,14 +119,15 @@
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
-  .stat-col { grid-column:span 2; }
+  .stat-col { grid-column:span 4; }
   .label {
     font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.08em; font-weight:600;
+    letter-spacing:.08em; font-weight:600; white-space:nowrap;
   }
   .stat {
-    font-size:17px; font-weight:700; color:var(--fg-strong);
+    font-size:22px; font-weight:700; color:var(--fg-strong);
     font-family:var(--mono); line-height:1.15; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
   }
 
   /* Section headings */
@@ -316,7 +317,7 @@
       <span class="sep">/</span>
       <span>13 properties</span>
       <span class="sep">/</span>
-      <span>May 24, 2026 13:40 UTC</span>
+      <span>May 24, 2026 14:02 UTC</span>
     </div>
   </div>
   <nav class="prop-nav" id="propNav">
@@ -883,7 +884,7 @@
 <div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #58a6ff"><h3>Studio Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.68/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #3fb950"><h3>1 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.26/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #d29922"><h3>2 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.05/ft²</span></div></div></div><div class="card span-3 metric-card"><div class="metric-header" style="border-top:3px solid #f85149"><h3>3 BR Market PSF</h3></div><div class="metric-body"><div class="metric-row"><span>Market PSF</span><span>$4.10/ft²</span></div></div></div>
   <div class="card span-12">
     <h2 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pricing — Inspire West Town</h2>
-    <p class="subtitle">12 comps analyzed &middot; Generated May 24, 2026 13:40 UTC</p>
+    <p class="subtitle">12 comps analyzed &middot; Generated May 24, 2026 14:02 UTC</p>
     <div class="scroll scroll-wide show-desktop">
       <table class="data-table" style="min-width:900px;">
         <thead><tr>

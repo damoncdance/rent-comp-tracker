@@ -99,9 +99,9 @@
     .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
     .grid { gap:6px; margin-top:8px; }
     .card { padding:10px 12px; }
-    .stat { font-size:14px; }
+    .stat { font-size:18px; }
     .stat-card { min-height:56px; }
-    .stat-col { grid-column:span 4; }
+    .stat-col { grid-column:span 6; }
     .chart-wrap { height:240px; }
     .chart-tall { height:360px; }
     .chart-wide { height:300px; }
@@ -119,14 +119,15 @@
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
-  .stat-col { grid-column:span 2; }
+  .stat-col { grid-column:span 4; }
   .label {
     font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.08em; font-weight:600;
+    letter-spacing:.08em; font-weight:600; white-space:nowrap;
   }
   .stat {
-    font-size:17px; font-weight:700; color:var(--fg-strong);
+    font-size:22px; font-weight:700; color:var(--fg-strong);
     font-family:var(--mono); line-height:1.15; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
   }
 
   /* Section headings */
