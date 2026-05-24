@@ -154,12 +154,12 @@ def _detail_full_html(prop: dict, snap_id: int) -> str:
 
 <div id="tab-availability" class="tab-panel active" role="tabpanel" aria-labelledby="btn-availability">
 <div class="grid">
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Leased</div><div class="stat">{leased_pct}%</div></div>
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Exposure</div><div class="stat">{exposure}%</div></div>
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Units Avail</div><div class="stat">{avail}</div></div>
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Vacant</div><div class="stat">{vacant_count}</div></div>
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent</div><div class="stat">${avg_rent:,.0f}</div></div>
-  <div class="card stat-card" style="grid-column:span 2"><div class="label">Avg Rent PSF</div><div class="stat">${avg_psf:.2f}</div></div>
+  <div class="card stat-card stat-col"><div class="label">Leased</div><div class="stat">{leased_pct}%</div></div>
+  <div class="card stat-card stat-col"><div class="label">Exposure</div><div class="stat">{exposure}%</div></div>
+  <div class="card stat-card stat-col"><div class="label">Units Avail</div><div class="stat">{avail}</div></div>
+  <div class="card stat-card stat-col"><div class="label">Vacant</div><div class="stat">{vacant_count}</div></div>
+  <div class="card stat-card stat-col"><div class="label">Avg Rent</div><div class="stat">${avg_rent:,.0f}</div></div>
+  <div class="card stat-card stat-col"><div class="label">Avg Rent PSF</div><div class="stat">${avg_psf:.2f}</div></div>
 
   <div class="card span-4">
     <h2>Unit Mix</h2>

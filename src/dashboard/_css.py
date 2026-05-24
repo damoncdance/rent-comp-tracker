@@ -81,6 +81,7 @@ def css() -> str:
   @media (max-width:960px) {
     .span-3 { grid-column:span 6; }
     .span-4,.span-5,.span-6,.span-7,.span-8 { grid-column:span 12; }
+    .stat-col { grid-column:span 4; }
     .comp-stats { grid-template-columns:repeat(3,1fr); }
     .show-desktop { display:none !important; }
     .show-mobile { display:block !important; }
@@ -95,8 +96,9 @@ def css() -> str:
     .tab { padding:8px 10px; font-size:10px; letter-spacing:.03em; }
     .grid { gap:6px; margin-top:8px; }
     .card { padding:10px 12px; }
-    .stat { font-size:18px; }
+    .stat { font-size:14px; }
     .stat-card { min-height:56px; }
+    .stat-col { grid-column:span 4; }
     .chart-wrap { height:240px; }
     .chart-tall { height:360px; }
     .chart-wide { height:300px; }
@@ -114,12 +116,13 @@ def css() -> str:
 
   /* KPI stat cards */
   .stat-card { display:flex; flex-direction:column; gap:2px; min-height:68px; justify-content:center; }
+  .stat-col { grid-column:span 2; }
   .label {
     font-size:10px; color:var(--muted); text-transform:uppercase;
     letter-spacing:.08em; font-weight:600;
   }
   .stat {
-    font-size:22px; font-weight:700; color:var(--fg-strong);
+    font-size:17px; font-weight:700; color:var(--fg-strong);
     font-family:var(--mono); line-height:1.15; font-variant-numeric:tabular-nums;
   }
 
