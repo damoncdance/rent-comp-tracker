@@ -73,6 +73,11 @@ _BASELINE_FEATURES = {
     "in-unit w/d", "quartz countertops", "stainless",
 }
 
+# Weight multiplier for units whose per-unit rent was interpolated rather than
+# observed (e.g. SecureCafe tier ranges). They still inform the market but are
+# trusted less than real observed prices.
+_ESTIMATED_WEIGHT = 0.5
+
 
 def _quality_score(prop: dict, amenity_data: dict | None) -> float:
     """Compute a 1-10 quality score for a property."""
@@ -380,6 +385,8 @@ def _generate_recommendations_impl() -> PricingReport | None:
         "comp_avg_quality_score": round(comp_avg_quality, 1),
         "subject_exposure": round(subject_exposure * 100, 1),
         "comp_avg_exposure": round(comp_avg_exposure * 100, 1),
+        "estimated_comp_units": sum(1 for cu in all_comp_units if cu.get("is_estimated")),
+        "total_comp_units": len(all_comp_units),
     }
 
     return PricingReport(
@@ -416,6 +423,9 @@ def _compute_market_psf(
         exposure = max(avail / total, 0.01)
         # Cap weight so one very-tight building can't dominate
         weight = min(1 / exposure, 20.0)
+        # Trust interpolated (non-observed) rents less.
+        if u.get("is_estimated"):
+            weight *= _ESTIMATED_WEIGHT
         by_bed[u["beds"]].append((psf, weight))
 
     result = {}

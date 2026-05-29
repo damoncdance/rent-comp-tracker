@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS units (
     max_rent        REAL,
     available_date  TEXT,                       -- ISO 8601 date
     concession_text TEXT,                      -- raw concession/special text if any
+    is_estimated    INTEGER NOT NULL DEFAULT 0, -- 1 = per-unit rent was interpolated, not observed (e.g. SecureCafe tier ranges)
     PRIMARY KEY (snapshot_id, unit_code),
     FOREIGN KEY (snapshot_id) REFERENCES snapshots(id)
 );

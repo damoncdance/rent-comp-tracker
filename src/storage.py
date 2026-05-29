@@ -68,11 +68,12 @@ def write_snapshot_success(
             """INSERT INTO units
                  (snapshot_id, unit_code, floorplan_id, floorplan_name,
                   beds, baths, sqft, min_rent, max_rent, available_date,
-                  concession_text)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  concession_text, is_estimated)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [(snapshot_id, u["UnitCode"], u["FloorplanId"], u["FloorplanName"],
               u["Beds"], u["Baths"], u["SqFt"], u["MinRent"], u["MaxRent"],
-              u["AvailableDate"], u.get("ConcessionText")) for u in units],
+              u["AvailableDate"], u.get("ConcessionText"),
+              1 if u.get("IsEstimated") else 0) for u in units],
         )
 
         # Roll units up to per-floorplan counts so we have tier-level history

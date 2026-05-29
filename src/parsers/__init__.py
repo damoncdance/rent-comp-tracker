@@ -10,6 +10,13 @@ the RentCafe parser (the reference implementation):
                 MinRent, MaxRent, AvailableDate
     floorplans: Id, Beds, Baths, MinSqFt, MaxSqFt, MinRent, MaxRent,
                 AvailableCount, AvailableDate
+
+Optional unit fields:
+    ConcessionText  raw special/concession text (defaults to "")
+    IsEstimated     True when the per-unit rent was interpolated rather than
+                    observed (e.g. SecureCafe only exposes tier low/high
+                    prices). Defaults to False. Stored as units.is_estimated
+                    and down-weighted by the pricing engine.
 """
 from __future__ import annotations
 

@@ -92,6 +92,9 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
                         "MaxRent": round(rent, 2),
                         "AvailableDate": _normalize_date(avail_date),
                         "ConcessionText": concession_text,
+                        # SecureCafe exposes only tier low/high prices, so the
+                        # per-unit rent here is interpolated, not observed.
+                        "IsEstimated": True,
                     })
             else:
                 # No unit numbers provided — synthesize one record per available unit
@@ -107,6 +110,8 @@ def parse_all(page_data_json: str) -> tuple[list[dict], list[dict]]:
                         "MaxRent": high_price,
                         "AvailableDate": _normalize_date(avail_date),
                         "ConcessionText": concession_text,
+                        # Synthesized from the tier range — not an observed rent.
+                        "IsEstimated": True,
                     })
 
     return units, floorplans

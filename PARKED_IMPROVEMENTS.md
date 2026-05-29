@@ -13,9 +13,12 @@ into `daily.yml` after the DB-init step. Idempotent and safe to run every day.
 Low success rate. The AppFolio parser may need investigation — could be zero vacancies
 or a site change. Worth a scraper-recovery pass.
 
-**6. SecureCafe interpolation flagging**
-Interpolated rents from SightMap feed into pricing recommendations without being marked
-as estimated. Should add an `is_estimated` flag, but needs schema + pricing logic changes.
+**6. SecureCafe interpolation flagging — DONE (2026-05-29)**
+SecureCafe only exposes tier low/high prices, so its per-unit rents are interpolated.
+Added a `units.is_estimated` flag (migration 003, backfilled for historical SecureCafe
+rows), set by the SecureCafe parser, persisted by storage, and surfaced on the parser
+contract. The pricing engine now down-weights estimated rents (×0.5) in the market-PSF
+calc and reports `estimated_comp_units` / `total_comp_units` in its summary.
 
 ## Park
 

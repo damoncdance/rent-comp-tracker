@@ -84,6 +84,13 @@ class TestSightMap:
         assert u["MinRent"] == 1800.0
         assert u["SqFt"] == 550
 
+    def test_units_are_not_estimated(self, json_text):
+        # SightMap returns real per-unit prices — these are observed, not
+        # interpolated, so they must not be flagged estimated.
+        from src.parsers.sightmap import parse_all
+        units, _ = parse_all(json_text)
+        assert all(not u.get("IsEstimated") for u in units)
+
     def test_concession_text(self, json_text):
         from src.parsers.sightmap import parse_all
         units, _ = parse_all(json_text)
@@ -266,6 +273,14 @@ class TestSecureCafe:
         units, _ = parse_all(json_text)
         # Studio A has 2 units with price range 1600-1700
         assert units[0]["MinRent"] == 1600.0
+
+    def test_units_are_flagged_estimated(self, json_text):
+        # SecureCafe only exposes tier low/high prices, so every per-unit
+        # rent is interpolated and must be marked estimated.
+        from src.parsers.securecafe import parse_all
+        units, _ = parse_all(json_text)
+        assert units
+        assert all(u.get("IsEstimated") is True for u in units)
         assert units[1]["MinRent"] == 1700.0
 
 

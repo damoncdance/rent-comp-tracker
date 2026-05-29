@@ -160,6 +160,27 @@ class TestComputeMarketPsf:
         # Only the 1000sqft unit counts → psf 2.5
         assert result[1] == pytest.approx(2.5)
 
+    def test_estimated_units_are_down_weighted(self):
+        # Same set of PSFs and exposures in both runs; only the estimated flag
+        # on the highest-PSF unit differs. Halving its weight must pull the
+        # weighted market PSF down relative to treating it as observed.
+        # (Comparison form so it's robust to the outlier-trim step, which is
+        # identical across both runs since the PSF values are unchanged.)
+        snaps = {i: {"unit_count": 10} for i in (1, 2, 3, 4)}
+
+        def units(high_estimated):
+            psfs = [(1, 2400), (2, 2500), (3, 2500), (4, 2600)]
+            return [
+                {"beds": 1, "sqft": 1000, "min_rent": rent,
+                 "is_estimated": (pid == 4 and high_estimated),
+                 "_prop": {"id": pid, "unit_count_total": 100}}
+                for pid, rent in psfs
+            ]
+
+        observed_psf = _compute_market_psf(units(False), [], snaps)[1]
+        estimated_psf = _compute_market_psf(units(True), [], snaps)[1]
+        assert estimated_psf < observed_psf
+
 
 # ---------------------------------------------------------------------------
 # generate_recommendations — seeded end-to-end invariants
