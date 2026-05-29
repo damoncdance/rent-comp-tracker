@@ -9,19 +9,88 @@ from __future__ import annotations
 import json
 import re
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 
 from src.config import (
-    DEFAULT_HEADERS, REQUEST_TIMEOUT_SECONDS,
+    BROWSER_USER_AGENT, DEFAULT_HEADERS, REQUEST_TIMEOUT_SECONDS,
     MAX_RETRIES, RETRY_BACKOFF_SECONDS, RAW_DIR,
 )
 
 
 class FetchError(Exception):
     """Raised when fetching fails after all retries."""
+
+
+# --- Shared Playwright plumbing --------------------------------------------
+# Both SecureCafe and RentCafe-optimized sites sit behind Cloudflare and need
+# a real (headed) browser. The launch/context setup and the Cloudflare wait
+# loop are identical, so they live here once.
+
+_PW_LAUNCH_ARGS = [
+    "--disable-blink-features=AutomationControlled",
+    "--window-size=1920,1080",
+]
+_PW_VIEWPORT = {"width": 1920, "height": 1080}
+
+
+@contextmanager
+def _browser_page(verbose: bool = False):
+    """Yield a Chromium page configured to slip past Cloudflare.
+
+    Handles the missing-Playwright case, browser launch/teardown, and the
+    shared context options (viewport + real-browser UA). Callers drive
+    navigation and extraction.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise FetchError(
+            "playwright is not installed — required for Cloudflare-protected sites. "
+            "Run: pip install playwright && python -m playwright install chromium"
+        )
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False, args=_PW_LAUNCH_ARGS)
+        try:
+            context = browser.new_context(
+                viewport=_PW_VIEWPORT,
+                user_agent=BROWSER_USER_AGENT,
+            )
+            yield context.new_page()
+        finally:
+            browser.close()
+
+
+def _wait_past_cloudflare(
+    page,
+    *,
+    block_titles: tuple[str, ...] = ("moment",),
+    settle_seconds: float = 0.0,
+    max_waits: int = 20,
+    step_seconds: float = 2.0,
+    verbose: bool = False,
+) -> str:
+    """Poll the page title until the Cloudflare interstitial clears.
+
+    `block_titles` are lowercase substrings that indicate we're still on the
+    challenge page. Once none match, optionally wait `settle_seconds` for the
+    real page to render, then return the final title.
+    """
+    for i in range(max_waits):
+        time.sleep(step_seconds)
+        title = page.title()
+        if verbose:
+            print(f"    waiting ({(i + 1) * step_seconds:.0f}s) — title: {title}")
+        low = title.lower()
+        if not any(b in low for b in block_titles):
+            if settle_seconds:
+                time.sleep(settle_seconds)
+            return title
+    return page.title()
 
 
 def fetch_html(
@@ -93,38 +162,15 @@ def fetch_securecafe(
     Returns (pageData_json, 200) where pageData_json is the JSON-serialized
     pageData object extracted from the page via JS evaluation.
     """
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        raise FetchError(
-            "playwright is not installed — required for SecureCafe sites. "
-            "Run: pip install playwright && python -m playwright install chromium"
-        )
-
     if verbose:
         print(f"  Playwright fetch: {url}")
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=False,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--window-size=1920,1080",
-                ],
-            )
-            context = browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent=(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/136.0.0.0 Safari/537.36"
-                ),
-            )
-            page = context.new_page()
+        with _browser_page(verbose=verbose) as page:
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-            # Wait for Cloudflare challenge to resolve and page to render
+            # Wait for Cloudflare to clear, then extract pageData. pageData may
+            # not be defined the instant the title clears, so keep polling.
             page_data = None
             for i in range(20):
                 time.sleep(2)
@@ -132,7 +178,6 @@ def fetch_securecafe(
                 if verbose:
                     print(f"    waiting ({(i+1)*2}s) — title: {title}")
 
-                # Once past Cloudflare, extract pageData
                 if "moment" not in title.lower():
                     try:
                         page_data = page.evaluate("JSON.stringify(pageData)")
@@ -142,9 +187,6 @@ def fetch_securecafe(
                         if i > 5:
                             break
                         continue
-
-            html = page.content()
-            browser.close()
 
         if page_data is None:
             raise FetchError("pageData not found after Cloudflare challenge")
@@ -183,46 +225,21 @@ def fetch_rentcafe_optimized(
     - "units": list of unit dicts with real apartment numbers
     - "ga4_floorplans": floorplan-tier data as fallback
     """
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        raise FetchError(
-            "playwright is not installed — required for Cloudflare-protected sites. "
-            "Run: pip install playwright && python -m playwright install chromium"
-        )
-
     if verbose:
         print(f"  Playwright fetch (rentcafe_optimized): {url}")
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=False,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--window-size=1920,1080",
-                ],
-            )
-            context = browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent=(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/136.0.0.0 Safari/537.36"
-                ),
-            )
-            page = context.new_page()
+        with _browser_page(verbose=verbose) as page:
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-            # Wait for Cloudflare challenge to resolve
-            for i in range(20):
-                time.sleep(2)
-                title = page.title()
-                if verbose:
-                    print(f"    waiting ({(i+1)*2}s) — title: {title}")
-                if "moment" not in title.lower() and "challenge" not in title.lower():
-                    time.sleep(3)
-                    break
+            # Wait for Cloudflare to clear (both interstitial titles), then
+            # give the SPA a moment to render the floorplan list.
+            _wait_past_cloudflare(
+                page,
+                block_titles=("moment", "challenge"),
+                settle_seconds=3.0,
+                verbose=verbose,
+            )
 
             main_html = page.content()
 
@@ -255,8 +272,6 @@ def fetch_rentcafe_optimized(
                 except Exception as e:
                     if verbose:
                         print(f"    Failed to fetch detail page {detail_url}: {e}")
-
-            browser.close()
 
         result = json.dumps({
             "units": all_units,

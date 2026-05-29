@@ -29,6 +29,7 @@ import argparse
 import base64
 import os
 import sys
+import time
 
 import requests
 
@@ -42,6 +43,8 @@ from src.notify._digest import build_multi_digest as _build_multi_digest
 
 RESEND_ENDPOINT = "https://api.resend.com/emails"
 SEND_TIMEOUT_SECONDS = 30
+SEND_MAX_ATTEMPTS = 3
+SEND_RETRY_BACKOFF_SECONDS = 3
 
 
 # --- Public API -------------------------------------------------------------
@@ -194,12 +197,22 @@ def _gather_single_snapshot_result(snapshot_id: int) -> list[dict]:
                 "ORDER BY beds, floorplan_name, unit_code",
                 (snapshot_id,),
             ).fetchall()]
-            prev = conn.execute(
-                "SELECT unit_count FROM snapshots "
-                "WHERE id < ? AND fetch_status = 'success' "
-                "ORDER BY id DESC LIMIT 1",
-                (snapshot_id,),
-            ).fetchone()
+            # Scope the "previous" snapshot to the same property so the
+            # delta isn't computed against an unrelated property's snapshot.
+            if prop_id:
+                prev = conn.execute(
+                    "SELECT unit_count FROM snapshots "
+                    "WHERE id < ? AND fetch_status = 'success' AND property_id = ? "
+                    "ORDER BY id DESC LIMIT 1",
+                    (snapshot_id, prop_id),
+                ).fetchone()
+            else:
+                prev = conn.execute(
+                    "SELECT unit_count FROM snapshots "
+                    "WHERE id < ? AND fetch_status = 'success' "
+                    "ORDER BY id DESC LIMIT 1",
+                    (snapshot_id,),
+                ).fetchone()
             if prev:
                 prev_unit_count = prev["unit_count"]
 
@@ -244,30 +257,46 @@ def _send(
         "Content-Type":  "application/json",
     }
 
-    try:
-        resp = requests.post(
-            RESEND_ENDPOINT, headers=headers, json=payload,
-            timeout=SEND_TIMEOUT_SECONDS,
-        )
-    except requests.RequestException as e:
-        log(f"notify: network error talking to Resend: {e}")
+    # The digest doubles as a daily heartbeat, so retry transient failures
+    # (network errors, 429, 5xx). Hard 4xx rejections won't change on retry.
+    for attempt in range(1, SEND_MAX_ATTEMPTS + 1):
+        try:
+            resp = requests.post(
+                RESEND_ENDPOINT, headers=headers, json=payload,
+                timeout=SEND_TIMEOUT_SECONDS,
+            )
+        except requests.RequestException as e:
+            log(f"notify: network error talking to Resend "
+                f"(attempt {attempt}/{SEND_MAX_ATTEMPTS}): {e}")
+            if attempt < SEND_MAX_ATTEMPTS:
+                time.sleep(SEND_RETRY_BACKOFF_SECONDS * attempt)
+                continue
+            return False
+
+        if resp.status_code in (200, 202):
+            try:
+                email_id = resp.json().get("id", "?")
+            except Exception:
+                email_id = "?"
+            extra = f" + attachment {attachment['filename']}" if attachment else ""
+            log(f"notify: sent to {', '.join(recipients)} (Resend id={email_id}){extra}")
+            return True
+
+        # Retry on transient server-side / rate-limit responses.
+        if resp.status_code in (429, 500, 502, 503, 504) and attempt < SEND_MAX_ATTEMPTS:
+            log(f"notify: Resend transient HTTP {resp.status_code} "
+                f"(attempt {attempt}/{SEND_MAX_ATTEMPTS}), retrying...")
+            time.sleep(SEND_RETRY_BACKOFF_SECONDS * attempt)
+            continue
+
+        try:
+            err = resp.json()
+            log(f"notify: Resend rejected (HTTP {resp.status_code}): "
+                f"{err.get('name', '')} — {err.get('message', '')}")
+        except Exception:
+            log(f"notify: Resend rejected (HTTP {resp.status_code}): {resp.text[:300]}")
         return False
 
-    if resp.status_code in (200, 202):
-        try:
-            email_id = resp.json().get("id", "?")
-        except Exception:
-            email_id = "?"
-        extra = f" + attachment {attachment['filename']}" if attachment else ""
-        log(f"notify: sent to {', '.join(recipients)} (Resend id={email_id}){extra}")
-        return True
-
-    try:
-        err = resp.json()
-        log(f"notify: Resend rejected (HTTP {resp.status_code}): "
-            f"{err.get('name', '')} — {err.get('message', '')}")
-    except Exception:
-        log(f"notify: Resend rejected (HTTP {resp.status_code}): {resp.text[:300]}")
     return False
 
 

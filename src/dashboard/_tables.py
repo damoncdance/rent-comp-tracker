@@ -371,7 +371,7 @@ def build_concessions_table(grid: list[dict]) -> str:
         concs = p.get("concessions", [])
         if concs:
             text = "; ".join(c[:120] for c in concs)
-            rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{text}</td></tr>'
+            rows += f'<tr{cls}><td>{e(p["name"])}</td><td class="concession-cell">{e(text)}</td></tr>'
         else:
             # Collapse no-concession properties into a lighter row
             rows += (f'<tr{cls} style="opacity:0.45;"><td>{e(p["name"])}</td>'

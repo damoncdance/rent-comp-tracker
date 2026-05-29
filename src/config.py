@@ -56,20 +56,27 @@ def get_property_by_id(property_id: int) -> dict | None:
 
 # --- HTTP -------------------------------------------------------------------
 
-# Real-browser User-Agent. Bumping this is the first remediation if fetches
-# start returning 403. See .claude/skills/scraper-recovery/SKILL.md.
+# Real-browser User-Agent, shared by the requests path (DEFAULT_HEADERS) and
+# the Playwright path (src/scraper.py). Bumping this single constant is the
+# first remediation if fetches start returning 403.
+# See .claude/skills/scraper-recovery/SKILL.md.
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/136.0.0.0 Safari/537.36"
+)
+
 DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/136.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": BROWSER_USER_AGENT,
     "Accept": (
         "text/html,application/xhtml+xml,application/xml;q=0.9,"
         "image/avif,image/webp,*/*;q=0.8"
     ),
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
+    # No "br": stdlib `requests` only decodes brotli when the optional
+    # brotli/brotlicffi package is installed, which we don't depend on.
+    # Advertising br risks receiving undecodable bytes from sites that honor it.
+    "Accept-Encoding": "gzip, deflate",
     "Connection":      "keep-alive",
     "Upgrade-Insecure-Requests": "1",
 }

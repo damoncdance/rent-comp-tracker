@@ -305,6 +305,21 @@ class TestAppFolio:
         with pytest.raises(ParseError):
             parse_all("<html><body>No markers</body></html>")
 
+    def test_empty_markers_is_zero_availability_not_error(self):
+        """An empty markers array means 'no current availability' (e.g. fully
+        leased), which is a valid zero-unit snapshot — not a parse failure."""
+        from src.parsers.appfolio import parse_all
+        html = (
+            "<script>var googleMap = new GoogleMap({\n"
+            "  container: 'googlemap',\n"
+            "  markers: [],\n"
+            "  zoom: 14\n"
+            "});</script>"
+        )
+        units, floorplans = parse_all(html)
+        assert units == []
+        assert floorplans == []
+
 
 # ---------------------------------------------------------------------------
 # Nestio

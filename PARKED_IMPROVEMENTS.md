@@ -4,9 +4,10 @@ Items identified from Codex code review (2026-05-10). Implement when relevant.
 
 ## Do Soon
 
-**4. Migration runner in CI**
-We have `migrations/` but the workflow only runs `sqlite3 < schema.sql` if the DB is missing.
-Next schema change will require a proper migration runner in the CI workflow.
+**4. Migration runner in CI — DONE (2026-05-29)**
+Added `migrations/runner.py` (discovers `NNN_*.py` migrations, applies pending ones,
+tracks them in a `schema_migrations` ledger) and wired `python -m migrations.runner`
+into `daily.yml` after the DB-init step. Idempotent and safe to run every day.
 
 **5. Arthurs of Old Town health**
 Low success rate. The AppFolio parser may need investigation — could be zero vacancies

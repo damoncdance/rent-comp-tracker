@@ -94,6 +94,9 @@ pip install -r requirements.txt
 python -m playwright install chromium
 sqlite3 data/tracker.db < schema.sql
 
+# Apply pending DB migrations (idempotent; tracked in schema_migrations)
+python -m migrations.runner
+
 # Run a single snapshot manually (locally)
 python -m src.daily_run --verbose
 

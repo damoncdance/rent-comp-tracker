@@ -467,7 +467,7 @@ def leasing_velocity(days: int = 7) -> dict[int, dict]:
     Returns {property_id: {"units_leased": int, "absorption_pct": float,
                            "by_bed": {beds: units_leased}}}.
     """
-    cutoff = (datetime.now(timezone.utc).date().__str__())  # YYYY-MM-DD
+    cutoff = datetime.now(timezone.utc).date().isoformat()  # YYYY-MM-DD
 
     with db() as conn:
         props = conn.execute(

@@ -51,6 +51,14 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -q
 
+      - name: Dependency vulnerability scan
+        # Non-blocking: surfaces known CVEs in our pinned deps without
+        # failing the daily snapshot if an advisory appears.
+        continue-on-error: true
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
+
       - name: Initialize database if missing
         run: |
           if [ ! -f data/tracker.db ]; then
@@ -60,6 +68,11 @@ jobs:
           else
             echo "Existing database found ($(stat -c %s data/tracker.db) bytes)."
           fi
+
+      - name: Apply database migrations
+        # Idempotent: pending migrations apply, already-applied ones skip
+        # (tracked in the schema_migrations ledger). Safe to run every day.
+        run: python -m migrations.runner
 
       - name: Run daily snapshot
         id: run

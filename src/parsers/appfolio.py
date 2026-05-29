@@ -32,11 +32,22 @@ _AVAIL_RE = re.compile(
 
 
 def parse_all(html: str) -> tuple[list[dict], list[dict]]:
-    """Parse AppFolio listing page. Returns (units, floorplans)."""
+    """Parse AppFolio listing page. Returns (units, floorplans).
+
+    Distinguishes two very different states that look similar:
+      - markers construct absent  → structural change → ParseError
+      - markers present but empty  → no current availability (e.g. fully
+        leased) → a valid, meaningful zero-unit snapshot, not a failure
+    """
     markers = _extract_markers(html)
+    if markers is None:
+        raise ParseError("No googleMap markers construct found in AppFolio page. "
+                         "Site structure may have changed — see scraper-recovery skill.")
     if not markers:
-        raise ParseError("No googleMap markers found in AppFolio page. "
-                         "Site may have no listings or changed structure.")
+        # Empty markers array = building has no current availability.
+        # Record it as a successful zero-unit snapshot so 100%-leased comps
+        # show up as real data instead of phantom fetch failures.
+        return [], []
 
     # Build available date lookup by detail URL
     avail_dates = {}
@@ -105,15 +116,21 @@ def parse_all(html: str) -> tuple[list[dict], list[dict]]:
     return units, floorplans
 
 
-def _extract_markers(html: str) -> list[dict]:
-    """Extract the markers JSON array from the googleMap constructor."""
+def _extract_markers(html: str) -> list[dict] | None:
+    """Extract the markers JSON array from the googleMap constructor.
+
+    Returns the (possibly empty) list of markers, or None if the markers
+    construct can't be located/decoded at all — i.e. the page structure
+    changed. An empty list is a valid 'no availability' state and the caller
+    must distinguish it from None.
+    """
     m = _MARKERS_RE.search(html)
     if not m:
-        return []
+        return None
     try:
         return json.loads(m.group(1))
     except json.JSONDecodeError:
-        return []
+        return None
 
 
 def _extract_unit_code(address: str) -> str:
