@@ -1,10 +1,9 @@
 from __future__ import annotations
 import re
 from collections import defaultdict
-from datetime import datetime, timezone
 
 from src.dashboard._constants import BED_COLORS, BED_LABELS
-from src.dashboard._helpers import e, is_vacant
+from src.dashboard._helpers import e
 from src.fees import FEES
 
 
@@ -54,16 +53,18 @@ def build_overview_table(grid: list[dict], dom_data: dict | None = None,
         r += f'<td{cls}>{p.get("unit_count_total", "")}</td>'
     rows.append(r)
 
-    # Leased %
+    # Leased % = share of units NOT currently listed as available. Every unit in
+    # the availability feed is on-market (not leased) regardless of its move-in
+    # date, so we count all of them — counting only units available within a few
+    # days made fully-listed buildings (e.g. future-dated lease-up inventory)
+    # read as ~100% leased.
     r = '<td class="row-label">Leased</td>'
-    today = datetime.now(timezone.utc).date()
     for p in grid:
         cls = ' class="subject-col"' if p.get("is_subject") else ''
         total = p.get("unit_count_total") or 0
-        avail_dates = p.get("avail_dates", [])
-        if total and avail_dates is not None:
-            vacant = sum(1 for d in avail_dates if is_vacant(d, today))
-            leased = round((total - vacant) / total * 100, 1)
+        avail = p.get("unit_count")
+        if total and avail is not None:
+            leased = max(0.0, round((total - avail) / total * 100, 1))
             r += f'<td{cls}>{leased}%</td>'
         else:
             r += f'<td{cls}>—</td>'
