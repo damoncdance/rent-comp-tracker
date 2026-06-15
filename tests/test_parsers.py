@@ -473,3 +473,76 @@ class TestWooCommerce:
         from src.parsers.woocommerce import parse_all, ParseError
         with pytest.raises(ParseError):
             parse_all("[]")
+
+
+# ---------------------------------------------------------------------------
+# Cross Street (yourcrossstreet.com) — server-rendered, real unit numbers
+# ---------------------------------------------------------------------------
+
+class TestCrossStreet:
+    # Mirrors the live 465 Carpenter markup: bed-type sections, a multi-unit
+    # floorplan, and a single-unit floorplan (different class set).
+    HTML = """
+    <div class="fp-content-wrapper" id="fp_content_0">
+      <div class="fp-content-title"><h3>Studio (3 Available Units)</h3></div>
+      <div class="fp-content-item fp-auto-expand">
+        <div class="fp-content-item-bar"><div class="fp-content-item-bar-left">
+          <div>Plan 04</div><div class="desktop-rent">$2,406-2,429</div></div>
+          <div class="fp-content-item-bar-right">1 Bath</div></div>
+        <div class="fp-content-item-content"><div class="fp-units-available">
+          <div class="fp-content-multi-units-item"><div class="unit-item-aptname">204</div><div class="unit-item-aptrent">$2,406</div><div class="unit-item-aptsize">593 Sq. Ft.</div><div class="unit-item-aptavailable">Available Jul 10</div></div>
+          <div class="fp-content-multi-units-item"><div class="unit-item-aptname">304</div><div class="unit-item-aptrent">$2,429</div><div class="unit-item-aptsize">579 Sq. Ft.</div><div class="unit-item-aptavailable">Available Now</div></div>
+        </div></div>
+      </div>
+    </div>
+    <div class="fp-content-wrapper" id="fp_content_2">
+      <div class="fp-content-title"><h3>2 Beds (1 Available Units)</h3></div>
+      <div class="fp-content-item fp-auto-expand">
+        <div class="fp-content-item-bar"><div class="fp-content-item-bar-left">
+          <div>Plan 05.1</div><div class="desktop-rent">$5,390</div></div>
+          <div class="fp-content-item-bar-right">2 Beds 2 Baths</div></div>
+        <div class="fp-content-item-content"><div class="fp-content-single-unit">
+          <div class="fp-content-single-unit-name">405</div>
+          <div class="fp-content-single-unit-rent">$5,390</div>
+          <div class="fp-content-single-unit-size">1,278 Sq. Ft.</div>
+          <div class="fp-content-single-unit-available" style="margin-bottom:20px;">Jul 10</div>
+        </div></div>
+      </div>
+    </div>
+    """
+
+    def test_real_unit_numbers_and_counts(self):
+        from src.parsers.crossstreet import parse_all
+        units, floorplans = parse_all(self.HTML)
+        assert len(units) == 3                       # 2 multi + 1 single
+        codes = {u["UnitCode"] for u in units}
+        assert codes == {"204", "304", "405"}        # real apartment numbers
+        assert all(not u.get("IsEstimated") for u in units)  # observed, not estimated
+
+    def test_beds_from_section_baths_from_bar(self):
+        from src.parsers.crossstreet import parse_all
+        units, _ = parse_all(self.HTML)
+        u204 = next(u for u in units if u["UnitCode"] == "204")
+        assert u204["Beds"] == 0 and u204["Baths"] == 1 and u204["SqFt"] == 593
+        u405 = next(u for u in units if u["UnitCode"] == "405")
+        assert u405["Beds"] == 2 and u405["Baths"] == 2 and u405["MinRent"] == 5390
+
+    def test_available_date_parsing(self):
+        from src.parsers.crossstreet import parse_all
+        units, _ = parse_all(self.HTML)
+        u204 = next(u for u in units if u["UnitCode"] == "204")
+        assert u204["AvailableDate"].endswith("-07-10")   # 'Jul 10' -> ISO
+        u304 = next(u for u in units if u["UnitCode"] == "304")
+        assert u304["AvailableDate"] == ""                # 'Available Now' -> ready
+
+    def test_floorplan_rollup(self):
+        from src.parsers.crossstreet import parse_all
+        _, floorplans = parse_all(self.HTML)
+        studio = next(f for f in floorplans if f["Beds"] == 0)
+        assert studio["AvailableCount"] == 2
+        assert studio["MinRent"] == 2406 and studio["MaxRent"] == 2429
+
+    def test_parse_error_on_empty(self):
+        from src.parsers.crossstreet import parse_all, ParseError
+        with pytest.raises(ParseError):
+            parse_all("<html><body>no floorplans here</body></html>")
