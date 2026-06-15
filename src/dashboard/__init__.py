@@ -31,7 +31,7 @@ from src.storage import (
 )
 
 from src.dashboard._constants import BED_COLORS as _BED_COLORS, BED_LABELS as _BED_LABELS
-from src.dashboard._helpers import e as _e, json_safe as _json_safe, fmt_dt as _fmt_dt, safe_slug as _safe_slug
+from src.dashboard._helpers import e as _e, json_safe as _json_safe, fmt_dt as _fmt_dt, safe_slug as _safe_slug, is_vacant as _is_vacant
 from src.dashboard._css import css as _css
 from src.dashboard._detail import render_property_detail as _render_property_detail
 from src.dashboard._tables import (
@@ -507,12 +507,13 @@ def _build_rent_comps_cards(grid: list[dict]) -> str:
         avail = p.get("unit_count") or 0
         exposure = round(avail / total * 100, 1) if total else 0
 
-        # Leased % = share of units NOT currently listed as available (every
-        # listed unit is on-market regardless of move-in date). Counting only
-        # units available within a few days made fully-listed lease-up
-        # inventory read as ~100% leased.
-        if total:
-            leased = max(0.0, round((total - avail) / total * 100, 1))
+        # Leased % uses 7-day vacancy threshold (consistent with overview tab)
+        avail_dates = p.get("avail_dates", [])
+        if total and avail_dates:
+            vacant = sum(1 for d in avail_dates if _is_vacant(d, today))
+            leased = round((total - vacant) / total * 100, 1)
+        elif total:
+            leased = round((1 - avail / total) * 100, 1)
         else:
             leased = 0
 
