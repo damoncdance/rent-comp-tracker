@@ -213,20 +213,22 @@ def fetch_rentcafe_optimized(
     save_raw: bool = True,
     verbose: bool = False,
 ) -> tuple[str, int]:
-    """Fetch floorplan-tier data from a RentCafe 'optimized' floorplans page.
+    """Fetch unit-level data from a RentCafe 'optimized' floorplans page.
 
-    Around mid-2026 these sites moved their pricing into the rendered DOM —
-    one card per floorplan carrying min/max rent, sqft, and an available
-    count — and dropped the old setGA4Cookie('GT', ...) data calls (only the
-    JS function definition remains). Real per-apartment data still lives on
-    Cloudflare-gated /floorplans/<plan> detail pages, but those re-trigger the
-    challenge and scraping ~12 of them per run is slow and unreliable, so we
-    read the floorplan cards from a single resolved page load instead. The
-    parser flags these tier-level rows as estimated.
+    Around mid-2026 these sites dropped the old setGA4Cookie('GT', ...) data
+    calls (only the JS function definition remains), but the real per-apartment
+    data still lives on the /floorplans/<plan> detail pages in applyGAClick()
+    calls (real apartment number, rent, sqft, move-in date). We:
+
+    1. Clear Cloudflare on the main page and read the floorplan cards (a
+       reliable tier-level fallback).
+    2. Visit each floorplan detail page and extract the real per-unit rows.
 
     Returns (json_string, 200) where json_string contains:
-    - "floorplan_cards": list of card dicts (primary source)
-    - "ga4_floorplans": GA4 tier data if the site still emits it (fallback)
+    - "units": real per-apartment rows (primary; observed, not estimated)
+    - "floorplan_cards": tier-level cards (fallback when detail pages don't
+      resolve — the parser flags these as estimated)
+    - "ga4_floorplans": GA4 tier data if the site still emits it (last resort)
     """
     if verbose:
         print(f"  Playwright fetch (rentcafe_optimized): {url}")
@@ -274,18 +276,51 @@ def fetch_rentcafe_optimized(
             # from these pages, but keep extracting it as a fallback for sites
             # that still emit it.
             ga4_fps = _extract_ga4_floorplans(main_html)
-            if verbose:
-                print(f"    Found {len(cards)} floorplan cards, {len(ga4_fps)} GA4 tiers")
 
-            # If neither cards nor GA4 data are present, the page really did
-            # change shape (or Cloudflare never resolved) — surface it.
-            if not cards and not ga4_fps:
+            # Find floorplan detail pages and pull real per-unit rows from each.
+            detail_urls = _extract_detail_urls(page)
+            if verbose:
+                print(f"    Found {len(cards)} cards, {len(ga4_fps)} GA4 tiers, "
+                      f"{len(detail_urls)} detail pages")
+
+            # If nothing at all resolved, the page changed shape (or Cloudflare
+            # never cleared) — surface it.
+            if not cards and not ga4_fps and not detail_urls:
                 raise FetchError(
-                    "No floorplan cards or GA4 data found — "
+                    "No floorplan cards, GA4 data, or detail links found — "
                     "site format may have changed"
                 )
 
+            all_units: list[dict] = []
+            for detail_url in detail_urls:
+                try:
+                    page.goto(detail_url, wait_until="domcontentloaded", timeout=20000)
+                    # Detail pages re-trigger Cloudflare; wait it out (the main
+                    # page already warmed the clearance cookie, so this is
+                    # usually quick) and reload once if no units appear.
+                    units = []
+                    for attempt in range(1, 3):
+                        _wait_past_cloudflare(
+                            page, block_titles=("moment", "challenge"),
+                            settle_seconds=1.5, max_waits=10, verbose=False,
+                        )
+                        units = _extract_units_from_detail(page)
+                        if units or attempt == 2:
+                            break
+                        try:
+                            page.reload(wait_until="domcontentloaded", timeout=20000)
+                        except Exception:
+                            break
+                    all_units.extend(units)
+                    if verbose:
+                        tail = detail_url.split("/floorplans/")[-1]
+                        print(f"    {tail}: {len(units)} units")
+                except Exception as e:
+                    if verbose:
+                        print(f"    detail page failed ({detail_url}): {e}")
+
         result = json.dumps({
+            "units": all_units,
             "floorplan_cards": cards,
             "ga4_floorplans": ga4_fps,
         })
@@ -377,6 +412,51 @@ def _extract_floorplan_cards(page) -> list[dict]:
             cards.push({ fpId, name, sqft, availCount: avail, minRent, maxRent, availDate });
         });
         return cards;
+    }""")
+
+
+def _extract_detail_urls(page) -> list[str]:
+    """Find unique floorplan detail page URLs from the main floorplans page."""
+    return page.evaluate("""() => {
+        const seen = new Set();
+        const urls = [];
+        document.querySelectorAll('a[href*="/floorplans/"]').forEach(a => {
+            const href = a.href;
+            if (href && !href.endsWith('/floorplans') && !href.endsWith('/floorplans/')) {
+                if (!seen.has(href)) {
+                    seen.add(href);
+                    urls.push(href);
+                }
+            }
+        });
+        return urls;
+    }""")
+
+
+def _extract_units_from_detail(page) -> list[dict]:
+    """Extract real per-apartment rows from applyGAClick() calls on a detail page."""
+    return page.evaluate("""() => {
+        const units = [];
+        document.querySelectorAll('a[onclick*="applyGAClick"]').forEach(a => {
+            const onclick = a.getAttribute('onclick') || '';
+            const href = a.getAttribute('href') || '';
+            const match = onclick.match(
+                /applyGAClick\\('([^']+)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)'/
+            );
+            if (match) {
+                const dateMatch = href.match(/MoveInDate=([^&]+)/);
+                units.push({
+                    fpName: match[1],
+                    beds: match[2],
+                    sqft: match[3],
+                    minRent: match[4],
+                    maxRent: match[5],
+                    unitNumber: match[6],
+                    moveInDate: dateMatch ? decodeURIComponent(dateMatch[1]) : ''
+                });
+            }
+        });
+        return units;
     }""")
 
 

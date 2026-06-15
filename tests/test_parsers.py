@@ -276,22 +276,41 @@ class TestRentCafeOptimized:
         u2, _ = parse_all(self._cards_payload())
         assert {u["UnitCode"] for u in u1} == {u["UnitCode"] for u in u2}
 
-    def test_cards_preferred_over_legacy_units_key(self):
+    def test_real_units_preferred_over_cards(self):
+        # Real per-apartment rows (detail pages) win over tier cards; cards are
+        # only a fallback when no real units resolved.
         import json as _json
         from src.parsers.rentcafe_optimized import parse_all
         data = _json.dumps({
+            "units": [
+                {"fpName": "x02 1 Bed - 1 Bath", "beds": "1", "sqft": "527",
+                 "minRent": "2720.00", "maxRent": "2720.00", "unitNumber": "702",
+                 "moveInDate": "6/29/2026"},
+            ],
+            "floorplan_cards": [
+                {"fpId": "5936306", "name": "x02 1 Bed - 1 Bath", "sqft": "527",
+                 "availCount": "2", "minRent": "2490", "maxRent": "2695",
+                 "availDate": "6/29/2026"},
+            ],
+        })
+        units, _ = parse_all(data)
+        assert [u["UnitCode"] for u in units] == ["702"]   # real apartment number
+        assert not units[0].get("IsEstimated")             # observed, not estimated
+
+    def test_cards_used_when_no_real_units(self):
+        import json as _json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = _json.dumps({
+            "units": [],
             "floorplan_cards": [
                 {"fpId": "1", "name": "a02 1 Bed - 1 Bath", "sqft": "500",
                  "availCount": "1", "minRent": "2000", "maxRent": "2000",
                  "availDate": ""},
             ],
-            "units": [
-                {"fpName": "ignored", "beds": "1", "sqft": "1", "minRent": "1.00",
-                 "maxRent": "1.00", "unitNumber": "999", "moveInDate": ""},
-            ],
         })
         units, _ = parse_all(data)
         assert [u["UnitCode"] for u in units] == ["FP-1"]
+        assert units[0]["IsEstimated"] is True
 
 
 # ---------------------------------------------------------------------------

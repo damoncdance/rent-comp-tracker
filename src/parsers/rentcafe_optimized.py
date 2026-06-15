@@ -69,13 +69,17 @@ def parse_all(data: str) -> tuple[list[dict], list[dict]]:
     If the data is plain HTML (legacy/fallback), extract GA4 cookie data.
     Returns normalized (units, floorplans) dicts.
     """
-    # Try JSON format first (current scraper output)
+    # Try JSON format first (current scraper output). Prefer real per-apartment
+    # rows from the detail pages; fall back to the tier-level cards (flagged
+    # estimated) only when no real units resolved.
     try:
         parsed = json.loads(data)
         if isinstance(parsed, dict):
+            if parsed.get("units"):
+                return _parse_json_data(parsed)
             if parsed.get("floorplan_cards"):
                 return _parse_floorplan_cards(parsed["floorplan_cards"])
-            if "units" in parsed:
+            if "units" in parsed or "ga4_floorplans" in parsed:
                 return _parse_json_data(parsed)
     except (json.JSONDecodeError, ValueError):
         pass
