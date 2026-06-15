@@ -213,17 +213,20 @@ def fetch_rentcafe_optimized(
     save_raw: bool = True,
     verbose: bool = False,
 ) -> tuple[str, int]:
-    """Fetch unit-level data from a RentCafe 'optimized' site via Playwright.
+    """Fetch floorplan-tier data from a RentCafe 'optimized' floorplans page.
 
-    These sites don't have ysi.unitsList. Instead we:
-    1. Visit the main /floorplans page (past Cloudflare)
-    2. Extract GA4 floorplan-tier data from setGA4Cookie calls
-    3. Find "Availability" links to floorplan detail pages
-    4. Visit each detail page and extract real unit data from applyGAClick()
+    Around mid-2026 these sites moved their pricing into the rendered DOM —
+    one card per floorplan carrying min/max rent, sqft, and an available
+    count — and dropped the old setGA4Cookie('GT', ...) data calls (only the
+    JS function definition remains). Real per-apartment data still lives on
+    Cloudflare-gated /floorplans/<plan> detail pages, but those re-trigger the
+    challenge and scraping ~12 of them per run is slow and unreliable, so we
+    read the floorplan cards from a single resolved page load instead. The
+    parser flags these tier-level rows as estimated.
 
     Returns (json_string, 200) where json_string contains:
-    - "units": list of unit dicts with real apartment numbers
-    - "ga4_floorplans": floorplan-tier data as fallback
+    - "floorplan_cards": list of card dicts (primary source)
+    - "ga4_floorplans": GA4 tier data if the site still emits it (fallback)
     """
     if verbose:
         print(f"  Playwright fetch (rentcafe_optimized): {url}")
@@ -246,35 +249,34 @@ def fetch_rentcafe_optimized(
             if not main_html or len(main_html) < 500:
                 raise FetchError("Page content too short — Cloudflare may not have resolved")
 
-            if "setGA4Cookie" not in main_html:
-                raise FetchError("setGA4Cookie not found in page — site format may have changed")
+            # Wait for the floorplan cards to render (it's a SPA). Don't hard
+            # fail if the selector never appears — we still try the GA4
+            # fallback below for legacy/variant layouts.
+            try:
+                page.wait_for_selector(".fp-container", timeout=10000)
+            except Exception:
+                if verbose:
+                    print("    .fp-container not found in 10s — trying GA4 fallback")
 
-            # Extract GA4 floorplan-tier data from main page
+            cards = _extract_floorplan_cards(page)
+
+            # GA4 floorplan-tier data (setGA4Cookie('GT', ...) calls) was dropped
+            # from these pages, but keep extracting it as a fallback for sites
+            # that still emit it.
             ga4_fps = _extract_ga4_floorplans(main_html)
             if verbose:
-                print(f"    Found {len(ga4_fps)} floorplan tiers from GA4 data")
+                print(f"    Found {len(cards)} floorplan cards, {len(ga4_fps)} GA4 tiers")
 
-            # Find floorplan detail page URLs (only those with "Availability" links)
-            detail_urls = _extract_detail_urls(page)
-            if verbose:
-                print(f"    Found {len(detail_urls)} floorplan detail pages to visit")
-
-            # Visit each detail page and extract unit-level data
-            all_units = []
-            for detail_url in detail_urls:
-                try:
-                    page.goto(detail_url, wait_until="domcontentloaded", timeout=20000)
-                    time.sleep(2)
-                    units = _extract_units_from_detail(page)
-                    all_units.extend(units)
-                    if verbose:
-                        print(f"    {detail_url.split('/floorplans/')[-1]}: {len(units)} units")
-                except Exception as e:
-                    if verbose:
-                        print(f"    Failed to fetch detail page {detail_url}: {e}")
+            # If neither cards nor GA4 data are present, the page really did
+            # change shape (or Cloudflare never resolved) — surface it.
+            if not cards and not ga4_fps:
+                raise FetchError(
+                    "No floorplan cards or GA4 data found — "
+                    "site format may have changed"
+                )
 
         result = json.dumps({
-            "units": all_units,
+            "floorplan_cards": cards,
             "ga4_floorplans": ga4_fps,
         })
 
@@ -313,49 +315,58 @@ def _extract_ga4_floorplans(html: str) -> list[dict]:
     return results
 
 
-def _extract_detail_urls(page) -> list[str]:
-    """Find unique floorplan detail page URLs from "Availability" links."""
-    urls = page.evaluate("""() => {
+def _extract_floorplan_cards(page) -> list[dict]:
+    """Extract tier-level data from the rendered floorplan cards.
+
+    Each `.fp-container` card carries the RentCafe floorplan id/name and the
+    bed/bath/sqft + "N Available" count; the matching `#modal-content-<id>`
+    holds the min–max rent range and the soonest move-in date. Returns one
+    dict per floorplan (deduped by id).
+    """
+    return page.evaluate(r"""() => {
+        // floorplan id -> canonical name, from whichever element carries both
+        const nameById = {};
+        document.querySelectorAll('[data-floorplan-id][data-floorplan-name]').forEach(e => {
+            nameById[e.getAttribute('data-floorplan-id')] = e.getAttribute('data-floorplan-name');
+        });
+
+        const cards = [];
         const seen = new Set();
-        const urls = [];
-        document.querySelectorAll('a[href*="/floorplans/"]').forEach(a => {
-            const href = a.href;
-            if (href && !href.endsWith('/floorplans') && !href.endsWith('/floorplans/')) {
-                if (!seen.has(href)) {
-                    seen.add(href);
-                    urls.push(href);
+        document.querySelectorAll('.fp-container').forEach(card => {
+            const idEl = card.querySelector('[data-floorplan-id]');
+            if (!idEl) return;
+            const fpId = idEl.getAttribute('data-floorplan-id');
+            if (!fpId || seen.has(fpId)) return;
+            seen.add(fpId);
+
+            const text = (card.innerText || '').replace(/\s+/g, ' ');
+            const heading = card.querySelector('h2, h3, h4');
+            const name = nameById[fpId] || (heading ? heading.innerText.trim() : '');
+            const avail = (text.match(/(\d+)\s+Available/i) || [])[1] || '';
+            const sqft  = (text.match(/([\d,]+)\s*Sq\.?\s*Ft/i) || [])[1] || '';
+
+            // Rent range + move-in date live in the per-floorplan modal.
+            let minRent = '', maxRent = '', availDate = '';
+            const modal = document.getElementById('modal-content-' + fpId);
+            if (modal) {
+                const rentEl = modal.querySelector('.text-2x');
+                if (rentEl) {
+                    const nums = (rentEl.innerText.match(/\$[\d,]+/g) || [])
+                                     .map(s => s.replace(/[^\d]/g, ''));
+                    if (nums.length) { minRent = nums[0]; maxRent = nums[nums.length - 1]; }
                 }
+                const d = (modal.innerText || '').match(/Available On:\s*([\d/]+)/i);
+                if (d) availDate = d[1];
             }
-        });
-        return urls;
-    }""")
-    return urls
-
-
-def _extract_units_from_detail(page) -> list[dict]:
-    """Extract unit data from applyGAClick() calls on a detail page."""
-    return page.evaluate("""() => {
-        const units = [];
-        document.querySelectorAll('a[onclick*="applyGAClick"]').forEach(a => {
-            const onclick = a.getAttribute('onclick') || '';
-            const href = a.getAttribute('href') || '';
-            const match = onclick.match(
-                /applyGAClick\\('([^']+)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)',\\s*'([^']*)'/
-            );
-            if (match) {
-                const dateMatch = href.match(/MoveInDate=([^&]+)/);
-                units.push({
-                    fpName: match[1],
-                    beds: match[2],
-                    sqft: match[3],
-                    minRent: match[4],
-                    maxRent: match[5],
-                    unitNumber: match[6],
-                    moveInDate: dateMatch ? decodeURIComponent(dateMatch[1]) : ''
-                });
+            // Fall back to the card's "Starting at $X" (min rent only).
+            if (!minRent) {
+                const sm = text.match(/Starting at\s*\$([\d,]+)/i);
+                if (sm) { minRent = sm[1].replace(/,/g, ''); maxRent = minRent; }
             }
+
+            cards.push({ fpId, name, sqft, availCount: avail, minRent, maxRent, availDate });
         });
-        return units;
+        return cards;
     }""")
 
 

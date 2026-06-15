@@ -227,6 +227,72 @@ class TestRentCafeOptimized:
         units, _ = parse_all(data)
         assert len(units) == 1
 
+    # --- floorplan_cards path (current main-page layout) -------------------
+
+    def _cards_payload(self):
+        import json
+        # Mirrors the real iwtchicago.com card data captured live.
+        return json.dumps({
+            "floorplan_cards": [
+                {"fpId": "5936306", "name": "x02 1 Bed - 1 Bath", "sqft": "527",
+                 "availCount": "2", "minRent": "2490", "maxRent": "2695",
+                 "availDate": "6/29/2026"},
+                {"fpId": "5936308", "name": "x07 Studio - 1 Bath", "sqft": "419",
+                 "availCount": "1", "minRent": "2175", "maxRent": "2175",
+                 "availDate": "7/8/2026"},
+                # "Contact Us" / unpriced floorplan — must be dropped
+                {"fpId": "5936999", "name": "z99 3 Bed - 2 Bath", "sqft": "1200",
+                 "availCount": "", "minRent": "0", "maxRent": "0", "availDate": ""},
+            ],
+            "ga4_floorplans": [],
+        })
+
+    def test_cards_produce_estimated_tier_units(self):
+        import json as _json
+        from src.parsers.rentcafe_optimized import parse_all
+        units, floorplans = parse_all(self._cards_payload())
+        assert len(units) == 2          # $0 floorplan dropped
+        assert len(floorplans) == 2
+        u = next(u for u in units if u["FloorplanName"].startswith("x02"))
+        assert u["UnitCode"] == "FP-5936306"   # stable id-based code
+        assert u["Beds"] == 1 and u["Baths"] == 1
+        assert u["SqFt"] == 527
+        assert u["MinRent"] == 2490 and u["MaxRent"] == 2695
+        assert u["AvailableDate"] == "6/29/2026"
+        assert u["IsEstimated"] is True
+
+    def test_cards_studio_beds_and_avail_count(self):
+        from src.parsers.rentcafe_optimized import parse_all
+        _, floorplans = parse_all(self._cards_payload())
+        studio = next(f for f in floorplans if f["MinRent"] == 2175)
+        assert studio["Beds"] == 0              # "Studio" → 0 beds
+        assert studio["AvailableCount"] == 1
+        x02 = next(f for f in floorplans if f["MinRent"] == 2490)
+        assert x02["AvailableCount"] == 2       # real count preserved
+
+    def test_cards_unit_codes_stable_across_runs(self):
+        from src.parsers.rentcafe_optimized import parse_all
+        u1, _ = parse_all(self._cards_payload())
+        u2, _ = parse_all(self._cards_payload())
+        assert {u["UnitCode"] for u in u1} == {u["UnitCode"] for u in u2}
+
+    def test_cards_preferred_over_legacy_units_key(self):
+        import json as _json
+        from src.parsers.rentcafe_optimized import parse_all
+        data = _json.dumps({
+            "floorplan_cards": [
+                {"fpId": "1", "name": "a02 1 Bed - 1 Bath", "sqft": "500",
+                 "availCount": "1", "minRent": "2000", "maxRent": "2000",
+                 "availDate": ""},
+            ],
+            "units": [
+                {"fpName": "ignored", "beds": "1", "sqft": "1", "minRent": "1.00",
+                 "maxRent": "1.00", "unitNumber": "999", "moveInDate": ""},
+            ],
+        })
+        units, _ = parse_all(data)
+        assert [u["UnitCode"] for u in units] == ["FP-1"]
+
 
 # ---------------------------------------------------------------------------
 # SecureCafe
