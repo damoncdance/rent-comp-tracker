@@ -235,28 +235,38 @@ def fetch_rentcafe_optimized(
         with _browser_page(verbose=verbose) as page:
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-            # Wait for Cloudflare to clear (both interstitial titles), then
-            # give the SPA a moment to render the floorplan list.
-            _wait_past_cloudflare(
-                page,
-                block_titles=("moment", "challenge"),
-                settle_seconds=3.0,
-                verbose=verbose,
-            )
+            # Cloudflare's "Just a moment" interstitial is intermittent on CI
+            # datacenter IPs — a challenge that doesn't clear on the first try
+            # often clears after a reload. The real success signal isn't the
+            # title clearing (the SPA still has to paint the cards), so we wait
+            # for .fp-container and reload-retry if it never shows.
+            title = ""
+            for attempt in range(1, 4):
+                title = _wait_past_cloudflare(
+                    page,
+                    block_titles=("moment", "challenge"),
+                    settle_seconds=3.0,
+                    verbose=verbose,
+                )
+                try:
+                    page.wait_for_selector(".fp-container", timeout=10000)
+                    break  # cards rendered — we're past Cloudflare
+                except Exception:
+                    if verbose:
+                        print(f"    .fp-container not visible (attempt {attempt}/3, "
+                              f"title={title!r})")
+                    if attempt < 3:
+                        if verbose:
+                            print("    reloading to retry Cloudflare…")
+                        try:
+                            page.reload(wait_until="domcontentloaded", timeout=30000)
+                        except Exception:
+                            pass
 
             main_html = page.content()
 
             if not main_html or len(main_html) < 500:
                 raise FetchError("Page content too short — Cloudflare may not have resolved")
-
-            # Wait for the floorplan cards to render (it's a SPA). Don't hard
-            # fail if the selector never appears — we still try the GA4
-            # fallback below for legacy/variant layouts.
-            try:
-                page.wait_for_selector(".fp-container", timeout=10000)
-            except Exception:
-                if verbose:
-                    print("    .fp-container not found in 10s — trying GA4 fallback")
 
             cards = _extract_floorplan_cards(page)
 
