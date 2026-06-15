@@ -1,13 +1,13 @@
-"""Migration 004: Add 455 Carpenter (inactive) to the comp set.
+"""Migration 004: Add 465 Carpenter (inactive) to the comp set.
 
-455 N Carpenter St is a new 72-unit building by Range Group in West Town.
+465 N Carpenter St is a new 72-unit building by Range Group in West Town.
 The website (465carpenter.com) runs on Wix with no scrapable listing platform,
 so the property is added as inactive until a parseable source is available.
 
 Idempotent — safe to run multiple times.
 
 Usage:
-    python -m migrations.004_add_455_carpenter
+    python -m migrations.004_add_465_carpenter
 """
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ def migrate():
                 year_built, stories, management_company)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                "455-carpenter",
-                "455 Carpenter",
-                "455 N Carpenter St, Chicago, IL 60642",
+                "465-carpenter",
+                "465 Carpenter",
+                "465 N Carpenter St, Chicago, IL 60642",
                 "https://www.465carpenter.com/",   # Wix site — no scrapable endpoint yet
-                "rentcafe",                        # placeholder until real platform identified
+                "wix",                             # unscrapable; fails safe if activated
                 72,
                 0,      # is_subject
                 0,      # active = 0 (inactive until scrapable source found)
@@ -49,12 +49,12 @@ def migrate():
         conn.commit()
 
         row = conn.execute(
-            "SELECT id, slug, name, active FROM properties WHERE slug = '455-carpenter'"
+            "SELECT id, slug, name, active FROM properties WHERE slug = '465-carpenter'"
         ).fetchone()
         if row:
             print(f"  Added property id={row[0]}: {row[2]} (slug={row[1]}, active={row[3]})")
         else:
-            print("  Property 455-carpenter already existed (no changes).")
+            print("  Property 465-carpenter already existed (no changes).")
 
         print("Migration 004 complete.")
 
