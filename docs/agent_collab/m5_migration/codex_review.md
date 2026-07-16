@@ -1,0 +1,15 @@
+PASS-WITH-FIXES
+
+1. SHOULD-FIX: §9 leaves m5 dirty immediately after clone. The `sed` edit to `SETUP.md` is made on m5 but never committed, reverted, or intentionally kept local, which weakens the “pull before edit” discipline. Either skip the cosmetic edit or commit/push it from the canonical repo before cloning. [MIGRATION_AUDIT_2026-07-16.md](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/MIGRATION_AUDIT_2026-07-16.md:216)
+
+2. SHOULD-FIX: Local smoke-run cleanup is incomplete. `src.daily_run` writes `data/tracker.db`, tracked `dashboard/`, and ignored `data/exports/`; the plan only says to reset `data/tracker.db`. Use `git restore -- data/tracker.db dashboard/` after smoke runs. [MIGRATION_AUDIT_2026-07-16.md](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/MIGRATION_AUDIT_2026-07-16.md:238), [src/daily_run.py](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/src/daily_run.py:62), [src/dashboard/__init__.py](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/src/dashboard/__init__.py:486)
+
+3. SHOULD-FIX: Bot/human race not covered. Actions checks out once, then later `git push`es `data/ dashboard/` without pulling/rebasing; a human push during the run can cause the bot push to reject and lose that day’s committed DB update. Add “avoid pushing while Daily snapshot is running; rerun workflow if bot push rejects.” [.github/workflows/daily.yml](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/.github/workflows/daily.yml:118)
+
+4. SHOULD-FIX: The repo is not “clean except screenshots.” Current untracked files also include `MIGRATION_AUDIT_2026-07-16.md` and `docs/agent_collab/m5_migration/`. §9 commits the audit but not the `docs/agent_collab/m5_migration` files; decide whether those review artifacts are disposable or add them. [MIGRATION_AUDIT_2026-07-16.md](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/MIGRATION_AUDIT_2026-07-16.md:139)
+
+5. NIT: The “hard target-exists guard” only prints `STOP`; because clone is a separate command, it relies on `git clone` failing if the destination exists. Non-destructive, but not a hard guard. Make it exit nonzero or combine with clone. [MIGRATION_AUDIT_2026-07-16.md](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/MIGRATION_AUDIT_2026-07-16.md:207)
+
+6. NIT: Venv/runtime claims check out: no `.env` or `.venv` present; `requirements.txt` is exactly pinned; Actions uses Python 3.11 and `xvfb-run`; macOS should run Playwright without `xvfb-run`. [requirements.txt](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/requirements.txt:1), [.github/workflows/daily.yml](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/.github/workflows/daily.yml:42), [.github/workflows/daily.yml](/Users/damondance/Documents/Code-Projects/rent-comp-tracker/.github/workflows/daily.yml:99)
+
+Clone recommendation is safe for runtime state: no local `.env`, no `.venv`, `data/tracker.db` and `dashboard/` are tracked, and ignored `data/raw/`, `data/exports/`, `artifacts/`, caches, and `.DS_Store` are non-canonical. Fix the operational notes above before executing.

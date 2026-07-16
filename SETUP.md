@@ -40,7 +40,7 @@ You should already have an empty repo at
 If not, create one (public, no README, no .gitignore, no license).
 
 Open a terminal in the unzipped project folder
-(`/Users/damondance/Documents/Code-Projects/rent-comp-tracker`) and run:
+(`/Users/damon/code-projects/rent-comp-tracker`) and run:
 
 ```bash
 git init
