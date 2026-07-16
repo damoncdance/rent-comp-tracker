@@ -4,8 +4,16 @@
 > PASS-WITH-FIXES — all SHOULD-FIX + NIT items folded in below (log in §12).**
 > Review brief + output: `docs/agent_collab/m5_migration/codex_brief.md` /
 > `codex_review.md`. Clone-is-safe and the venv/runtime claims were verified good.
-> **STATUS: PLAN ONLY — nothing in §9 has been run.** This is the plan for
-> review/execution, following the same pattern as the prior migrations.
+> **STATUS: EXECUTED 2026-07-16 — dev clone live on m5, all gates green.** §9 was run:
+> pre-flight committed+pushed (`21e7be6`); m5 cloned to `~/code-projects/rent-comp-tracker`
+> (SSH remote, clean tree); venv built on py3.12.13 from the pinned manifest (`pip check` OK);
+> Chromium installed; migrations all skip (DB current); **80/80 pytest passed**; imports
+> resolve with `PROJECT_ROOT=/Users/damon/code-projects/rent-comp-tracker`. Production
+> unchanged (still GitHub Actions).
+> ⚠️ **Connectivity note:** the `m5` ssh alias (`damon-m5-server.local`, mDNS) does NOT resolve
+> off the home LAN — use **`m5-ts`** (Tailscale, `~/.ssh/config`) which works anywhere both
+> boxes run Tailscale. All §9 server steps above were run via `m5-ts`.
+> This was the plan for review/execution, following the same pattern as the prior migrations.
 > Reusable procedure: `~/Documents/chicago-land-sourcing/docs/MIGRATION_PLAYBOOK.md`.
 > Prior worked examples: chicago `MIGRATION_AUDIT_2026-06-30.md`, consilia
 > `MIGRATION_AUDIT_2026-07-03.md`, devise-brokerage-os `MIGRATION_AUDIT_2026-07-05.md`,
