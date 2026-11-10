@@ -20,7 +20,21 @@ rows), set by the SecureCafe parser, persisted by storage, and surfaced on the p
 contract. The pricing engine now down-weights estimated rents (×0.5) in the market-PSF
 calc and reports `estimated_comp_units` / `total_comp_units` in its summary.
 
+**14. The Jax — SecureCafe Cloudflare failures (added 2026-11-10)**
+`pageData not found after Cloudflare challenge`, ~73% success over 30 days.
+Scraper-recovery pass. See `docs/agent_collab/email_outage/HANDOFF.md`.
+
+**15. Unpin ubuntu-24.04 runner (added 2026-11-10)**
+Pinned because Playwright 1.59 can't install Chromium on Ubuntu 26.04. When
+bumping Playwright, check 26.04 support and unpin. Also bump checkout/setup-python
+off Node 20.
+
 ## Park
+
+**16. Notify polish + tests (added 2026-11-10)**
+Remove dead code (`_resend_attachment_for_snapshot`, `workbook_attached`). Replace
+`display:flex` in the pricing cards (Gmail and Outlook render it poorly). Use
+"no changes" in multi-property subjects. Add `src/notify/` tests.
 
 **7. Typed data models (dataclasses/Pydantic)**
 Every parser, storage, dashboard, and notify module passes dicts. Correct architectural

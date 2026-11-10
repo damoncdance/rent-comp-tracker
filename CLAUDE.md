@@ -122,11 +122,18 @@ sqlite3 data/tracker.db
 ## Email notifications (Resend)
 
 One consolidated digest per daily run covering all properties. Fires even on
-failures so the inbox doubles as a heartbeat. Includes pricing insights and
+property failures, and a separate `Rent Comps — RUN FAILED` alert (final step
+of `daily.yml`) fires if the workflow itself breaks, so the inbox doubles as a
+heartbeat: **no email at all means investigate.** Includes pricing insights and
 an attached Excel comp report. Subject format:
 
-- `Rent Comps — 12 properties, 48 units, 5 changes`
-- `Rent Comps — 12 properties, 48 units, no changes`
+- `Rent Comps — 14 properties, 48 units, 5 changes` (all OK)
+- `Rent Comps — 12/14 OK, 48 units, 5 changes` (some properties failed)
+
+Recipient (`NOTIFY_TO`) is the owner's work mailbox, not Gmail. Sender is
+`onboarding@resend.dev` (no verified domain). The snapshot job is pinned to
+`ubuntu-24.04` because Playwright 1.59 can't install Chromium on 26.04. See
+`docs/agent_collab/email_outage/HANDOFF.md` (2026-11-10).
 
 ## When the scraper breaks
 
