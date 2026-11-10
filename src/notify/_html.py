@@ -40,9 +40,12 @@ def html_multi_template(prop_results: list[dict], subject: str,
             )
         else:
             status = '<span style="color:#cf222e;font-weight:600;">FAILED</span>'
+            reason = (r["snap"]["fetch_status"].replace("failed:", "", 1)
+                      if r["snap"] else "no snapshot")
             summary_rows += (
                 f'<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;">'
-                f'{name}{subject_badge}</td>'
+                f'{name}{subject_badge}'
+                f'<div style="color:#888;font-size:11px;margin-top:2px;">{e(reason[:80])}</div></td>'
                 f'<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:center;">{status}</td>'
                 f'<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right;">—</td>'
                 f'<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right;">—</td></tr>'

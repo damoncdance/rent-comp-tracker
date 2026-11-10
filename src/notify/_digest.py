@@ -241,7 +241,8 @@ def build_pricing_section() -> tuple[list[str], str]:
     try:
         from src.pricing import generate_recommendations, signal_label
         report = generate_recommendations()
-    except Exception:
+    except Exception as exc:
+        print(f"notify: pricing section omitted — {type(exc).__name__}: {exc}", flush=True)
         return [], ""
 
     if report is None or not report.units:

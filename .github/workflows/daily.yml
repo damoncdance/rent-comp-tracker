@@ -24,7 +24,10 @@ concurrency:
 
 jobs:
   snapshot:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04 on ~2026-11-05 and Playwright 1.59
+    # cannot install Chromium there, which silently killed every run (and
+    # therefore every email). Bump deliberately after checking Playwright support.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       dashboard-ready: ${{ steps.run.outputs.dashboard-ready }}
@@ -42,7 +45,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        timeout-minutes: 5
+        # 5 min was too tight: apt mirror slowness timed this out on 2026-10-26.
+        timeout-minutes: 10
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -126,6 +130,34 @@ jobs:
             git commit -m "Daily snapshot: $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push
           fi
+
+      - name: Email alert if the workflow itself failed
+        # The digest is sent from inside daily_run, so a failure in setup,
+        # install, tests or migrations used to produce no email at all.
+        # Uses only system python3 + stdlib so it works even if setup broke.
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_FROM:    ${{ secrets.NOTIFY_FROM }}
+          NOTIFY_TO:      ${{ secrets.NOTIFY_TO }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          to = [a.strip() for a in os.environ["NOTIFY_TO"].split(",") if a.strip()]
+          url = os.environ["RUN_URL"]
+          body = {
+              "from": os.environ["NOTIFY_FROM"], "to": to,
+              "subject": "Rent Comps — RUN FAILED (no data collected)",
+              "text": f"The daily snapshot workflow failed before or during the run.\n\nLogs: {url}",
+              "html": f"<p>The daily snapshot workflow failed before or during the run.</p><p><a href='{url}'>View logs</a></p>",
+          }
+          req = urllib.request.Request(
+              "https://api.resend.com/emails", data=json.dumps(body).encode(),
+              headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
+                       "Content-Type": "application/json"})
+          print(urllib.request.urlopen(req, timeout=30).read().decode())
+          PY
 
       - name: Upload dashboard as Pages artifact
         if: steps.run.outputs.dashboard-ready == 'true'

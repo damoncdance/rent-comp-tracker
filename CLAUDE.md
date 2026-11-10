@@ -26,7 +26,7 @@ The project uses different scraping strategies based on the platform:
 ## Architecture
 
 ```
-GitHub Actions cron (12:30 UTC daily)
+GitHub Actions cron (13:00 UTC daily; GitHub often starts it hours late)
    ↓
 checkout repo (gets last committed data/tracker.db)
    ↓
