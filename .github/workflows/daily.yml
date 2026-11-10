@@ -128,7 +128,15 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Daily snapshot: $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
+            # Retry: GitHub-side push errors (e.g. "fatal error in
+            # commit_refs_rules" on 2026-11-10) otherwise lose a day of data.
+            for attempt in 1 2 3 4; do
+              if git push; then exit 0; fi
+              echo "push failed (attempt $attempt), retrying..."
+              sleep $((attempt * 30))
+              git pull --rebase --quiet || true
+            done
+            exit 1
           fi
 
       - name: Email alert if the workflow itself failed
@@ -143,7 +151,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           python3 - <<'PY'
-          import json, os, urllib.request
+          import json, os, urllib.error, urllib.request
           to = [a.strip() for a in os.environ["NOTIFY_TO"].split(",") if a.strip()]
           url = os.environ["RUN_URL"]
           body = {
@@ -155,8 +163,14 @@ jobs:
           req = urllib.request.Request(
               "https://api.resend.com/emails", data=json.dumps(body).encode(),
               headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
-                       "Content-Type": "application/json"})
-          print(urllib.request.urlopen(req, timeout=30).read().decode())
+                       "Content-Type": "application/json",
+                       # Resend sits behind Cloudflare, which 403s urllib's default UA.
+                       "User-Agent": "rent-comp-tracker/1.0"})
+          try:
+              print(urllib.request.urlopen(req, timeout=30).read().decode())
+          except urllib.error.HTTPError as err:
+              print(f"Resend HTTP {err.code}: {err.read().decode()[:500]}")
+              raise
           PY
 
       - name: Upload dashboard as Pages artifact
